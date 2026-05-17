@@ -1,0 +1,26 @@
+# Parameters for all four pipelines, organized by pipeline name
+
+preprocessing:
+  min_order_value: 0.01
+  valid_order_statuses:
+    - delivered
+    - shipped
+    - invoiced
+  hmac_algorithm: sha256
+
+feature_engineering:
+  rfm_snapshot_date:  # to be set at runtime
+  n_clusters_min: 3
+  n_clusters_max: 8
+
+training:
+  anomaly_contamination: 0.05
+  random_state: 42
+  dp_epsilon: 2.0
+  dp_delta: 1.0e-5
+  lgbm_n_estimators: 200
+  lgbm_learning_rate: 0.05
+
+inference:
+  anomaly_threshold: 0.7
+  churn_risk_threshold: 0.6

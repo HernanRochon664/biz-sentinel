@@ -1,0 +1,74 @@
+# Data catalog for the Olist dataset
+
+# Raw inputs (type: pandas.CSVDataset, layer: "raw")
+olist_orders_raw:
+  type: pandas.CSVDataset
+  filepath: data/01_raw/olist_orders_dataset.csv
+  layer: raw
+
+olist_customers_raw:
+  type: pandas.CSVDataset
+  filepath: data/01_raw/olist_customers_dataset.csv
+  layer: raw
+
+olist_order_items_raw:
+  type: pandas.CSVDataset
+  filepath: data/01_raw/olist_order_items_dataset.csv
+  layer: raw
+
+olist_order_payments_raw:
+  type: pandas.CSVDataset
+  filepath: data/01_raw/olist_order_payments_dataset.csv
+  layer: raw
+
+olist_order_reviews_raw:
+  type: pandas.CSVDataset
+  filepath: data/01_raw/olist_order_reviews_dataset.csv
+  layer: raw
+
+olist_products_raw:
+  type: pandas.CSVDataset
+  filepath: data/01_raw/olist_products_dataset.csv
+  layer: raw
+
+olist_sellers_raw:
+  type: pandas.CSVDataset
+  filepath: data/01_raw/olist_sellers_dataset.csv
+  layer: raw
+
+# Intermediate outputs (type: pandas.ParquetDataset, layer: "intermediate")
+customers_clean:
+  type: pandas.ParquetDataset
+  filepath: data/02_intermediate/customers_clean.parquet
+  layer: intermediate
+
+orders_clean:
+  type: pandas.ParquetDataset
+  filepath: data/02_intermediate/orders_clean.parquet
+  layer: intermediate
+
+payments_clean:
+  type: pandas.ParquetDataset
+  filepath: data/02_intermediate/payments_clean.parquet
+  layer: intermediate
+
+transactions_clean:
+  type: pandas.ParquetDataset
+  filepath: data/02_intermediate/transactions_clean.parquet
+  layer: intermediate
+
+reviews_clean:
+  type: pandas.ParquetDataset
+  filepath: data/02_intermediate/reviews_clean.parquet
+  layer: intermediate
+
+# Primary outputs (type: pandas.ParquetDataset, layer: "primary")
+customers_pseudonymized:
+  type: pandas.ParquetDataset
+  filepath: data/03_primary/customers_pseudonymized.parquet
+  layer: primary
+
+transactions_pseudonymized:
+  type: pandas.ParquetDataset
+  filepath: data/03_primary/transactions_pseudonymized.parquet
+  layer: primary
