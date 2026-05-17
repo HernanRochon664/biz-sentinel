@@ -9,7 +9,7 @@ dependencies = [
     "numpy>=1.26.4",
     "scikit-learn>=1.5.0",
     "lightgbm>=4.3.0",
-    "shap>=0.45.1",
+    "shap>=0.46.0,<0.51.0",
     "diffprivlib>=0.2.1",
     "kedro>=0.19.5",
     "prefect>=2.19.0",
@@ -26,7 +26,7 @@ dependencies = [
     "sqlalchemy>=2.0.30",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
     "pyright>=1.1.366",
     "ruff>=0.4.4",
