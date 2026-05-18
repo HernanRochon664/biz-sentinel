@@ -1,6 +1,6 @@
 """Inference pipeline for BizSentinel."""
 
-from kedro.pipeline import Pipeline, pipeline
+from kedro.pipeline import Pipeline, pipeline  # type: ignore[import-untyped]
 
 
 def create_pipeline(**kwargs) -> Pipeline:

@@ -12,7 +12,7 @@ All processing follows BizSentinel's privacy-first principles with deterministic
 pseudonymization of customer identifiers.
 """
 
-from kedro.pipeline import Pipeline, node, pipeline
+from kedro.pipeline import Pipeline, node, pipeline  # type: ignore[import-untyped]
 
 
 def create_pipeline(**kwargs) -> Pipeline:
@@ -35,7 +35,7 @@ def create_pipeline(**kwargs) -> Pipeline:
     return pipeline([
         # Clean raw orders data
         node(  # type: ignore[arg-type]
-            func="biz_sentinel.pipelines.preprocessing.nodes.clean_orders",
+            func="biz_sentinel.pipelines.preprocessing.nodes.clean_orders",  # type: ignore[reportArgumentType]
             inputs=["olist_orders_raw", "params:preprocessing.valid_order_statuses"],
             outputs="orders_clean",
             name="clean_orders_node",
@@ -44,7 +44,7 @@ def create_pipeline(**kwargs) -> Pipeline:
 
         # Clean raw customers data
         node(  # type: ignore[arg-type]
-            func="biz_sentinel.pipelines.preprocessing.nodes.clean_customers",
+            func="biz_sentinel.pipelines.preprocessing.nodes.clean_customers",  # type: ignore[reportArgumentType]
             inputs="olist_customers_raw",
             outputs="customers_clean",
             name="clean_customers_node",
@@ -53,7 +53,7 @@ def create_pipeline(**kwargs) -> Pipeline:
 
         # Clean raw reviews data
         node(  # type: ignore[arg-type]
-            func="biz_sentinel.pipelines.preprocessing.nodes.clean_reviews",
+            func="biz_sentinel.pipelines.preprocessing.nodes.clean_reviews",  # type: ignore[reportArgumentType]
             inputs="olist_order_reviews_raw",
             outputs="reviews_clean",
             name="clean_reviews_node",
@@ -62,7 +62,7 @@ def create_pipeline(**kwargs) -> Pipeline:
 
         # Clean raw payments data
         node(  # type: ignore[arg-type]
-            func="biz_sentinel.pipelines.preprocessing.nodes.clean_payments",
+            func="biz_sentinel.pipelines.preprocessing.nodes.clean_payments",  # type: ignore[reportArgumentType]
             inputs="olist_order_payments_raw",
             outputs="payments_clean",
             name="clean_payments_node",
@@ -72,7 +72,7 @@ def create_pipeline(**kwargs) -> Pipeline:
         # Pseudonymize customer identifiers
         # Note: hmac_salt is NOT a catalog input - it will be injected via env var in the runner
         node(  # type: ignore[arg-type]
-            func="biz_sentinel.pipelines.preprocessing.nodes.pseudonymize_customers",
+            func="biz_sentinel.pipelines.preprocessing.nodes.pseudonymize_customers",  # type: ignore[reportArgumentType]
             inputs="customers_clean",
             outputs="customers_pseudonymized",
             name="pseudonymize_customers_node",
@@ -81,7 +81,7 @@ def create_pipeline(**kwargs) -> Pipeline:
 
         # Build transaction dataset
         node(  # type: ignore[arg-type]
-            func="biz_sentinel.pipelines.preprocessing.nodes.build_transactions",
+            func="biz_sentinel.pipelines.preprocessing.nodes.build_transactions",  # type: ignore[reportArgumentType]
             inputs=["orders_clean", "olist_order_items_raw", "payments_clean"],
             outputs="transactions_clean",
             name="build_transactions_node",

@@ -1,6 +1,6 @@
 """Pipeline registry for BizSentinel."""
 
-from kedro.pipeline import pipeline
+from kedro.pipeline import pipeline  # type: ignore[import-untyped]
 
 # Import pipelines (these will be created later)
 # Using a try/except block to allow the project to run even if pipelines don't exist yet

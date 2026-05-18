@@ -3,9 +3,9 @@
 import logging
 from pathlib import Path
 
-from kedro.framework.project import configure_project
-from kedro.framework.session import KedroSession
-from kedro.framework.startup import bootstrap_project
+from kedro.framework.project import configure_project  # type: ignore[import-untyped]
+from kedro.framework.session import KedroSession  # type: ignore[import-untyped]
+from kedro.framework.startup import bootstrap_project  # type: ignore[import-untyped]
 
 logger = logging.getLogger(__name__)
 

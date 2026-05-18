@@ -41,7 +41,7 @@ def clean_orders(orders: pd.DataFrame, valid_statuses: list[str]) -> pd.DataFram
     cleaned = orders[orders['order_status'].isin(valid_statuses)].copy()
     
     # Drop rows where order_purchase_timestamp is null
-    cleaned = cleaned.dropna(subset=('order_purchase_timestamp',))
+    cleaned = cleaned.dropna(subset=['order_purchase_timestamp'])  # type: ignore[call-overload]
     
     # Parse datetime columns
     datetime_columns = [
@@ -136,7 +136,7 @@ def clean_reviews(reviews: pd.DataFrame) -> pd.DataFrame:
             cleaned[col] = pd.to_datetime(cleaned[col], errors='coerce')
     
     # Drop duplicates on review_id
-    cleaned = cleaned.drop_duplicates(subset=('review_id',))
+    cleaned = cleaned.drop_duplicates(subset=['review_id'])  # type: ignore[call-overload]
     
     return cleaned
 
@@ -165,7 +165,7 @@ def clean_payments(payments: pd.DataFrame) -> pd.DataFrame:
     cleaned = payments[payments['payment_value'] > 0].copy()
     
     # Drop rows with null payment_type
-    cleaned = cleaned.dropna(subset=('payment_type',))
+    cleaned = cleaned.dropna(subset=['payment_type'])  # type: ignore[call-overload]
     
     return cleaned
 
