@@ -72,3 +72,29 @@ transactions_pseudonymized:
   type: pandas.ParquetDataset
   filepath: data/03_primary/transactions_pseudonymized.parquet
   layer: primary
+
+# Feature Engineering outputs
+rfm_features:
+  type: pandas.ParquetDataset
+  filepath: data/04_feature/rfm_features.parquet
+  layer: feature
+
+review_features:
+  type: pandas.ParquetDataset
+  filepath: data/04_feature/review_features.parquet
+  layer: feature
+
+delivery_features:
+  type: pandas.ParquetDataset
+  filepath: data/04_feature/delivery_features.parquet
+  layer: feature
+
+payment_features:
+  type: pandas.ParquetDataset
+  filepath: data/04_feature/payment_features.parquet
+  layer: feature
+
+feature_matrix:
+  type: pandas.ParquetDataset
+  filepath: data/05_model_input/feature_matrix.parquet
+  layer: model_input
