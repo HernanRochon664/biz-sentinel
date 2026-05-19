@@ -10,6 +10,14 @@ The model is passed directly to downstream nodes, and metrics are logged to MLfl
 
 from kedro.pipeline import Pipeline, node, pipeline  # type: ignore[import-untyped]
 
+from biz_sentinel.pipelines.training.churn_nodes import (
+    build_churn_labels,
+    compute_churn_shap,
+    prepare_churn_features,
+    score_churn,
+    train_churn_model,
+    train_churn_model_with_dp,
+)
 from biz_sentinel.pipelines.training.segmentation_nodes import (
     assign_segments,
     compute_segment_profiles,
@@ -123,6 +131,69 @@ def create_pipeline(**kwargs) -> Pipeline:
                 outputs="segment_profiles",
                 name="compute_segment_profiles_node",
                 tags=["training", "segmentation", "analysis"],
+            ),
+            node(  # type: ignore[arg-type]
+                func=build_churn_labels,
+                inputs="feature_matrix",
+                outputs="feature_matrix_with_labels",
+                name="build_churn_labels_node",
+                tags=["training", "churn", "labeling"],
+            ),
+            node(  # type: ignore[arg-type]
+                func=prepare_churn_features,
+                inputs=[
+                    "feature_matrix_with_labels",
+                    "anomaly_scores",
+                    "segment_assignments",
+                ],
+                outputs=["churn_X", "churn_y", "churn_customer_hashes"],
+                name="prepare_churn_features_node",
+                tags=["training", "churn", "preprocessing"],
+            ),
+            node(  # type: ignore[arg-type]
+                func=train_churn_model,
+                inputs=[
+                    "churn_X",
+                    "churn_y",
+                    "params:training.lgbm_n_estimators",
+                    "params:training.lgbm_learning_rate",
+                    "params:training.random_state",
+                ],
+                outputs=["churn_model", "churn_metrics"],
+                name="train_churn_model_node",
+                tags=["training", "churn", "mlflow"],
+            ),
+            node(  # type: ignore[arg-type]
+                func=train_churn_model_with_dp,
+                inputs=[
+                    "churn_X",
+                    "churn_y",
+                    "params:training.dp_epsilon",
+                    "params:training.dp_delta",
+                    "params:training.random_state",
+                ],
+                outputs=["churn_dp_model", "churn_dp_metrics"],
+                name="train_churn_model_with_dp_node",
+                tags=["training", "churn", "privacy", "mlflow"],
+            ),
+            node(  # type: ignore[arg-type]
+                func=score_churn,
+                inputs=[
+                    "churn_model",
+                    "churn_X",
+                    "churn_customer_hashes",
+                    "params:inference.churn_risk_threshold",
+                ],
+                outputs="churn_scores",
+                name="score_churn_node",
+                tags=["training", "churn", "scoring"],
+            ),
+            node(  # type: ignore[arg-type]
+                func=compute_churn_shap,
+                inputs=["churn_model", "churn_X", "churn_customer_hashes"],
+                outputs="churn_shap_values",
+                name="compute_churn_shap_node",
+                tags=["training", "churn", "explainability"],
             ),
         ]
     )

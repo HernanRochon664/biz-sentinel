@@ -136,3 +136,22 @@ k_analysis_results:
 # (intermediate within pipeline run, not persisted to disk).
 # feature_scaler should be persisted in a later iteration using
 # kedro's PickleDataset when inference pipeline requires it.
+
+# Training pipeline outputs — Module C: Churn Scoring
+feature_matrix_with_labels:
+  type: pandas.ParquetDataset
+  filepath: data/05_model_input/feature_matrix_with_labels.parquet
+  layer: model_input
+
+churn_scores:
+  type: pandas.ParquetDataset
+  filepath: data/07_model_output/churn_scores.parquet
+  layer: model_output
+
+churn_shap_values:
+  type: pandas.ParquetDataset
+  filepath: data/07_model_output/churn_shap_values.parquet
+  layer: model_output
+
+# Note: churn_X, churn_y, churn_customer_hashes, churn_model, churn_metrics,
+# churn_dp_model, churn_dp_metrics are MemoryDataset (intermediate).
