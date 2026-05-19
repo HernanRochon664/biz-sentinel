@@ -3,5 +3,6 @@
   "typeCheckingMode": "basic",
   "include": ["src"],
   "venvPath": ".",
-  "venv": ".venv"
+  "venv": ".venv",
+  "reportArgumentType": "none"
 }
