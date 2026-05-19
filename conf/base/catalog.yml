@@ -114,3 +114,25 @@ anomaly_shap_values:
 # (intermediate, not persisted to disk at this stage)
 # When the inference pipeline needs to load a saved model, it will
 # read from MLflow model registry, not from the catalog.
+
+# Training pipeline outputs — Module B: Segmentation
+segment_assignments:
+  type: pandas.ParquetDataset
+  filepath: data/07_model_output/segment_assignments.parquet
+  layer: model_output
+
+segment_profiles:
+  type: pandas.ParquetDataset
+  filepath: data/07_model_output/segment_profiles.parquet
+  layer: model_output
+
+k_analysis_results:
+  type: pandas.ParquetDataset
+  filepath: data/08_reporting/k_analysis_results.parquet
+  layer: reporting
+
+# Note: segmentation_model, feature_scaler, seg_customer_hashes,
+# segmentation_feature_matrix, and segmentation_metrics are MemoryDataset
+# (intermediate within pipeline run, not persisted to disk).
+# feature_scaler should be persisted in a later iteration using
+# kedro's PickleDataset when inference pipeline requires it.
