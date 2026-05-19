@@ -98,3 +98,19 @@ feature_matrix:
   type: pandas.ParquetDataset
   filepath: data/05_model_input/feature_matrix.parquet
   layer: model_input
+
+# Training pipeline outputs — Module A: Anomaly Detection
+anomaly_scores:
+  type: pandas.ParquetDataset
+  filepath: data/07_model_output/anomaly_scores.parquet
+  layer: model_output
+
+anomaly_shap_values:
+  type: pandas.ParquetDataset
+  filepath: data/07_model_output/anomaly_shap_values.parquet
+  layer: model_output
+
+# Note: anomaly_model and anomaly_training_metrics are MemoryDataset
+# (intermediate, not persisted to disk at this stage)
+# When the inference pipeline needs to load a saved model, it will
+# read from MLflow model registry, not from the catalog.
