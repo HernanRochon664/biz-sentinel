@@ -52,6 +52,7 @@ select = [
     "B",    # flake8-bugbear
     "SIM",  # flake8-simplify
 ]
+per-file-ignores = {"src/biz_sentinel/serving/api/*.py" = ["B008"]}
 
 [tool.pyright]
 typeCheckingMode = "basic"
