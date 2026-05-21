@@ -10,4 +10,4 @@ Exports:
 
 from .pseudonymizer import pseudonymize_customer_id, validate_hash_format
 
-__all__ = ['pseudonymize_customer_id', 'validate_hash_format']
+__all__ = ["pseudonymize_customer_id", "validate_hash_format"]
