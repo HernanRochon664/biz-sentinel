@@ -1,0 +1,29 @@
+# Development overrides — use with:
+# docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+version: "3.9"
+
+services:
+  app:
+    volumes:
+      - ../src:/app/src  # live code reload
+      - ../tests:/app/tests
+    environment:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG
+    command: tail -f /dev/null  # keep alive for manual kedro commands
+
+  api:
+    environment:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG
+    command: >
+      uvicorn biz_sentinel.serving.api.main:app
+      --host 0.0.0.0 --port 8000 --reload
+
+  mlflow:
+    ports:
+      - "5001:5000"  # avoid collision with local mlflow if running
+
+  # SQLite in dev — no separate db service needed
+  # data/ volume mount handles persistence
