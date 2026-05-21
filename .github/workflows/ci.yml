@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: uv sync --dev
+
+      - name: Run Ruff linter
+        run: uv run ruff check src/
+
+      - name: Run Ruff formatter check
+        run: uv run ruff format --check src/
+
+      - name: Run Pyright type checker
+        run: uv run pyright src/
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    needs: quality
+    env:
+      HMAC_SALT: "ci_test_salt_not_for_production"
+      SECRET_KEY: "ci_test_secret_not_for_production"
+      MLFLOW_TRACKING_URI: "sqlite:///tmp/mlflow_ci.db"
+      DATABASE_URL: "sqlite:///tmp/biz_sentinel_ci.db"
+      ENVIRONMENT: "test"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: uv sync --dev
+
+      - name: Run tests (unit only)
+        run: uv run pytest tests/ -v --tb=short -m "not integration"
+      
+      - name: Run integration tests
+        run: uv run pytest tests/ -v --tb=short -m "integration"
+        continue-on-error: true  # integration tests are informational in CI
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: htmlcov/
+          retention-days: 7

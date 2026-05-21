@@ -165,6 +165,7 @@ def train_kmeans(
 
         mlflow.log_metrics(metrics)
         import mlflow.sklearn  # type: ignore[import-untyped]
+
         mlflow.sklearn.log_model(  # type: ignore[reportPrivateImportUsage]
             model,
             artifact_path="kmeans",
@@ -295,8 +296,6 @@ def compute_segment_profiles(
         avg_late_delivery_rate=("late_delivery_rate", "mean"),
     )
 
-    profiles = profiles.sort_values(
-        "avg_monetary_total", ascending=False
-    ).reset_index()  # type: ignore[call-overload]
+    profiles = profiles.sort_values("avg_monetary_total", ascending=False).reset_index()  # type: ignore[call-overload]
 
     return profiles

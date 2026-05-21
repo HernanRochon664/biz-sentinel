@@ -15,10 +15,10 @@ def main():
     # Bootstrap the project
     project_path = Path.cwd()
     bootstrap_project(project_path)
-    
+
     # Configure the project
     configure_project("biz_sentinel")
-    
+
     # Create a session and run the CLI
     with KedroSession.create(project_path=project_path) as session:
         session.run()
