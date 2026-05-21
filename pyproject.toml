@@ -60,7 +60,8 @@ include = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--cov=src --cov-report=term-missing"
+addopts = "--cov=src --cov-report=term-missing --cov-report=html -m 'not integration'"
+markers = ["integration: marks tests as integration tests (deselect with -m 'not integration')"]
 
 [tool.kedro]
 package_name = "biz_sentinel"
