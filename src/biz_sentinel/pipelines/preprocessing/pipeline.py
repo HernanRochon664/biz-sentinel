@@ -14,70 +14,56 @@ pseudonymization of customer identifiers.
 
 from kedro.pipeline import Pipeline, node, pipeline  # type: ignore[import-untyped]
 
+from biz_sentinel.pipelines.preprocessing.nodes import (
+    build_transactions,
+    clean_customers,
+    clean_orders,
+    clean_payments,
+    clean_reviews,
+    pseudonymize_customers,
+)
+
 
 def create_pipeline(**kwargs) -> Pipeline:
-    """Create the preprocessing pipeline.
-
-    This pipeline transforms raw datasets into clean, normalized intermediate
-    representations. The pipeline handles data quality issues like duplicates,
-    invalid values, and type mismatches while preserving referential integrity.
-
-    The pipeline applies privacy-preserving transformations by pseudonymizing
-    customer identifiers using HMAC-SHA256. The cryptographic salt is loaded
-    from environment variables rather than configuration files to maintain security.
-
-    Args:
-        kwargs: Optional keyword arguments for the pipeline.
-
-    Returns:
-        A Kedro Pipeline object.
-    """
     return pipeline(
         [
-            # Clean raw orders data
-            node(  # type: ignore[arg-type]
-                func="biz_sentinel.pipelines.preprocessing.nodes.clean_orders",  # type: ignore[reportArgumentType]
+            node(
+                func=clean_orders,
                 inputs=["olist_orders_raw", "params:preprocessing.valid_order_statuses"],
                 outputs="orders_clean",
                 name="clean_orders_node",
                 tags=["preprocessing"],
             ),
-            # Clean raw customers data
-            node(  # type: ignore[arg-type]
-                func="biz_sentinel.pipelines.preprocessing.nodes.clean_customers",  # type: ignore[reportArgumentType]
+            node(
+                func=clean_customers,
                 inputs="olist_customers_raw",
                 outputs="customers_clean",
                 name="clean_customers_node",
                 tags=["preprocessing"],
             ),
-            # Clean raw reviews data
-            node(  # type: ignore[arg-type]
-                func="biz_sentinel.pipelines.preprocessing.nodes.clean_reviews",  # type: ignore[reportArgumentType]
+            node(
+                func=clean_reviews,
                 inputs="olist_order_reviews_raw",
                 outputs="reviews_clean",
                 name="clean_reviews_node",
                 tags=["preprocessing"],
             ),
-            # Clean raw payments data
-            node(  # type: ignore[arg-type]
-                func="biz_sentinel.pipelines.preprocessing.nodes.clean_payments",  # type: ignore[reportArgumentType]
+            node(
+                func=clean_payments,
                 inputs="olist_order_payments_raw",
                 outputs="payments_clean",
                 name="clean_payments_node",
                 tags=["preprocessing"],
             ),
-            # Pseudonymize customer identifiers
-            # Note: hmac_salt is NOT a catalog input - it will be injected via env var in the runner
-            node(  # type: ignore[arg-type]
-                func="biz_sentinel.pipelines.preprocessing.nodes.pseudonymize_customers",  # type: ignore[reportArgumentType]
-                inputs="customers_clean",
+            node(
+                func=pseudonymize_customers,
+                inputs=["customers_clean", "parameters"],
                 outputs="customers_pseudonymized",
                 name="pseudonymize_customers_node",
                 tags=["preprocessing", "privacy"],
             ),
-            # Build transaction dataset
-            node(  # type: ignore[arg-type]
-                func="biz_sentinel.pipelines.preprocessing.nodes.build_transactions",  # type: ignore[reportArgumentType]
+            node(
+                func=build_transactions,
                 inputs=["orders_clean", "olist_order_items_raw", "payments_clean"],
                 outputs="transactions_clean",
                 name="build_transactions_node",

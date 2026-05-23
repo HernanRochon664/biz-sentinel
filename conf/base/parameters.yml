@@ -8,8 +8,10 @@ preprocessing:
     - invoiced
   hmac_algorithm: sha256
 
+rfm_snapshot_date: "2018-10-17"
+
 feature_engineering:
-  rfm_snapshot_date:  # to be set at runtime
+  rfm_snapshot_date: "2018-10-17" 
   n_clusters_min: 3
   n_clusters_max: 8
 

@@ -1,13 +1,3 @@
-"""Kedro pipeline for training anomaly detection models (Module A).
-
-This pipeline trains an Isolation Forest model for anomaly detection and produces
-scored output with SHAP-based explanations.
-
-Note: anomaly_model and anomaly_training_metrics are in-memory datasets (MemoryDataset).
-They are intermediate outputs within the same pipeline run and do not require catalog entries.
-The model is passed directly to downstream nodes, and metrics are logged to MLflow.
-"""
-
 from kedro.pipeline import Pipeline, node, pipeline  # type: ignore[import-untyped]
 
 from biz_sentinel.pipelines.training.churn_nodes import (
@@ -17,6 +7,12 @@ from biz_sentinel.pipelines.training.churn_nodes import (
     score_churn,
     train_churn_model,
     train_churn_model_with_dp,
+)
+from biz_sentinel.pipelines.training.nodes import (
+    compute_anomaly_shap,
+    prepare_anomaly_features,
+    score_anomalies,
+    train_isolation_forest,
 )
 from biz_sentinel.pipelines.training.segmentation_nodes import (
     assign_segments,
@@ -44,15 +40,15 @@ def create_pipeline(**kwargs) -> Pipeline:
     """
     return pipeline(
         [
-            node(  # type: ignore[arg-type]
-                func="biz_sentinel.pipelines.training.nodes.prepare_anomaly_features",
+            node(
+                func=prepare_anomaly_features,
                 inputs="feature_matrix",
                 outputs=["anomaly_feature_matrix", "customer_hashes"],
                 name="prepare_anomaly_features_node",
                 tags=["training", "anomaly_detection", "preprocessing"],
             ),
-            node(  # type: ignore[arg-type]
-                func="biz_sentinel.pipelines.training.nodes.train_isolation_forest",
+            node(
+                func=train_isolation_forest,
                 inputs=[
                     "anomaly_feature_matrix",
                     "params:training.anomaly_contamination",
@@ -62,8 +58,8 @@ def create_pipeline(**kwargs) -> Pipeline:
                 name="train_isolation_forest_node",
                 tags=["training", "anomaly_detection", "mlflow"],
             ),
-            node(  # type: ignore[arg-type]
-                func="biz_sentinel.pipelines.training.nodes.score_anomalies",
+            node(
+                func=score_anomalies,
                 inputs=[
                     "anomaly_model",
                     "anomaly_feature_matrix",
@@ -74,8 +70,8 @@ def create_pipeline(**kwargs) -> Pipeline:
                 name="score_anomalies_node",
                 tags=["training", "anomaly_detection", "scoring"],
             ),
-            node(  # type: ignore[arg-type]
-                func="biz_sentinel.pipelines.training.nodes.compute_anomaly_shap",
+            node(
+                func=compute_anomaly_shap,
                 inputs=["anomaly_model", "anomaly_feature_matrix", "customer_hashes"],
                 outputs="anomaly_shap_values",
                 name="compute_anomaly_shap_node",

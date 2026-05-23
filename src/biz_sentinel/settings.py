@@ -1,10 +1,10 @@
 """Kedro settings for BizSentinel."""
 
-from kedro.config import YamlConfigLoader  # type: ignore[attr-defined]
+from kedro.config import OmegaConfigLoader  # type: ignore[attr-defined]
 
 # Configuration loader class that will be used to load the configuration
-# YamlConfigLoader is the default and supports YAML files with templating
-CONFIG_LOADER_CLASS = YamlConfigLoader
+# OmegaConfigLoader is the default and supports YAML files with templating
+CONFIG_LOADER_CLASS = OmegaConfigLoader
 
 # Additional configuration for the config loader
 # This can include default paths to look for configuration files

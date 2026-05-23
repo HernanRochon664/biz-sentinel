@@ -11,6 +11,12 @@ from typing import Any
 
 import pandas as pd
 
+
+# Return a sentinel object instead of None — Kedro cannot save None to MemoryDataset
+class _DPFailedSentinel:
+    """Placeholder when DP training fails due to library incompatibility."""
+    pass
+
 CHURN_FEATURES: list[str] = [
     "recency_days",
     "frequency",
@@ -89,6 +95,13 @@ def prepare_churn_features(
     Raises:
         ValueError: If required features are missing or contain null values.
     """
+
+    cols_to_drop = ["segment_label", "anomaly_score"]
+    feature_matrix_with_labels = feature_matrix_with_labels.drop(
+        columns=[c for c in cols_to_drop if c in feature_matrix_with_labels.columns],
+        errors="ignore"
+    )
+
     merged = feature_matrix_with_labels.merge(
         anomaly_scores[["customer_hash", "anomaly_score"]],
         on="customer_hash",
@@ -300,7 +313,8 @@ def train_churn_model_with_dp(
 
     except Exception as e:
         warnings.warn(f"DP model training failed: {e}. Returning empty metrics.", stacklevel=2)
-        return None, {"dp_training_failed": 1.0, "epsilon": epsilon}
+        # Return a sentinel object instead of None — Kedro cannot save None to MemoryDataset
+        return (_DPFailedSentinel(), {"dp_training_failed": 1.0, "epsilon": epsilon})
 
 
 def score_churn(

@@ -1,114 +1,93 @@
 # Data catalog for the Olist dataset
 
-# Raw inputs (type: pandas.CSVDataset, layer: "raw")
+# Raw inputs
 olist_orders_raw:
   type: pandas.CSVDataset
   filepath: data/01_raw/olist_orders_dataset.csv
-  layer: raw
 
 olist_customers_raw:
   type: pandas.CSVDataset
   filepath: data/01_raw/olist_customers_dataset.csv
-  layer: raw
 
 olist_order_items_raw:
   type: pandas.CSVDataset
   filepath: data/01_raw/olist_order_items_dataset.csv
-  layer: raw
 
 olist_order_payments_raw:
   type: pandas.CSVDataset
   filepath: data/01_raw/olist_order_payments_dataset.csv
-  layer: raw
 
 olist_order_reviews_raw:
   type: pandas.CSVDataset
   filepath: data/01_raw/olist_order_reviews_dataset.csv
-  layer: raw
 
 olist_products_raw:
   type: pandas.CSVDataset
   filepath: data/01_raw/olist_products_dataset.csv
-  layer: raw
 
 olist_sellers_raw:
   type: pandas.CSVDataset
   filepath: data/01_raw/olist_sellers_dataset.csv
-  layer: raw
 
-# Intermediate outputs (type: pandas.ParquetDataset, layer: "intermediate")
+# Intermediate outputs
 customers_clean:
   type: pandas.ParquetDataset
   filepath: data/02_intermediate/customers_clean.parquet
-  layer: intermediate
 
 orders_clean:
   type: pandas.ParquetDataset
   filepath: data/02_intermediate/orders_clean.parquet
-  layer: intermediate
 
 payments_clean:
   type: pandas.ParquetDataset
   filepath: data/02_intermediate/payments_clean.parquet
-  layer: intermediate
 
 transactions_clean:
   type: pandas.ParquetDataset
   filepath: data/02_intermediate/transactions_clean.parquet
-  layer: intermediate
 
 reviews_clean:
   type: pandas.ParquetDataset
   filepath: data/02_intermediate/reviews_clean.parquet
-  layer: intermediate
 
-# Primary outputs (type: pandas.ParquetDataset, layer: "primary")
+# Primary outputs
 customers_pseudonymized:
   type: pandas.ParquetDataset
   filepath: data/03_primary/customers_pseudonymized.parquet
-  layer: primary
 
 transactions_pseudonymized:
   type: pandas.ParquetDataset
   filepath: data/03_primary/transactions_pseudonymized.parquet
-  layer: primary
 
 # Feature Engineering outputs
 rfm_features:
   type: pandas.ParquetDataset
   filepath: data/04_feature/rfm_features.parquet
-  layer: feature
 
 review_features:
   type: pandas.ParquetDataset
   filepath: data/04_feature/review_features.parquet
-  layer: feature
 
 delivery_features:
   type: pandas.ParquetDataset
   filepath: data/04_feature/delivery_features.parquet
-  layer: feature
 
 payment_features:
   type: pandas.ParquetDataset
   filepath: data/04_feature/payment_features.parquet
-  layer: feature
 
 feature_matrix:
   type: pandas.ParquetDataset
   filepath: data/05_model_input/feature_matrix.parquet
-  layer: model_input
 
 # Training pipeline outputs — Module A: Anomaly Detection
 anomaly_scores:
   type: pandas.ParquetDataset
   filepath: data/07_model_output/anomaly_scores.parquet
-  layer: model_output
 
 anomaly_shap_values:
   type: pandas.ParquetDataset
   filepath: data/07_model_output/anomaly_shap_values.parquet
-  layer: model_output
 
 # Note: anomaly_model and anomaly_training_metrics are MemoryDataset
 # (intermediate, not persisted to disk at this stage)
@@ -119,17 +98,14 @@ anomaly_shap_values:
 segment_assignments:
   type: pandas.ParquetDataset
   filepath: data/07_model_output/segment_assignments.parquet
-  layer: model_output
 
 segment_profiles:
   type: pandas.ParquetDataset
   filepath: data/07_model_output/segment_profiles.parquet
-  layer: model_output
 
 k_analysis_results:
   type: pandas.ParquetDataset
   filepath: data/08_reporting/k_analysis_results.parquet
-  layer: reporting
 
 # Note: segmentation_model, feature_scaler, seg_customer_hashes,
 # segmentation_feature_matrix, and segmentation_metrics are MemoryDataset
@@ -141,17 +117,14 @@ k_analysis_results:
 feature_matrix_with_labels:
   type: pandas.ParquetDataset
   filepath: data/05_model_input/feature_matrix_with_labels.parquet
-  layer: model_input
 
 churn_scores:
   type: pandas.ParquetDataset
   filepath: data/07_model_output/churn_scores.parquet
-  layer: model_output
 
 churn_shap_values:
   type: pandas.ParquetDataset
   filepath: data/07_model_output/churn_shap_values.parquet
-  layer: model_output
 
 # Note: churn_X, churn_y, churn_customer_hashes, churn_model, churn_metrics,
 # churn_dp_model, churn_dp_metrics are MemoryDataset (intermediate).
