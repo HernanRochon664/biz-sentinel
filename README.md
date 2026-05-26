@@ -17,48 +17,35 @@ From an MLOps perspective, BizSentinel uses Kedro for pipeline DAG management wi
 
 ## Architecture
 
-```
-                   Olist CSVs (Kaggle)
-                           │
-                           ▼
-┌──────────────────────────────────────────────┐
-│              Kedro Pipeline                  │
-│                                              │
-│  ┌──────────┐   ┌──────────────┐   ┌──────┐  │
-│  │Preprocess │──▶│Feature Eng.  │──▶│Train │  │
-│  │· Clean    │   │· RFM         │   │· IF  │  │
-│  │· Validate │   │· Reviews     │   │· KMeans  │
-│  │· Pseudo-  │   │· Delivery    │   │· LGBM │  │
-│  │  nymize   │   │· Payments    │   │· DP   │  │
-│  └──────────┘   └──────────────┘   └──────┘  │
-│         │              │               │      │
-│         ▼              ▼               ▼      │
-│         parquet       parquet        parquet  │
-└──────────────────────────────────────────────┘
-              │                    │
-              ▼                    ▼
-       MLflow Tracking      Prefect Flows
-       (experiments,        (training,
-        model registry)      inference,
-                             monitoring)
-              │
-              ▼
-┌──────────────────────────────┐
-│   SQLite DB (serving layer)  │
-│  ┌─────────────────────────┐ │
-│  │ anomaly_scores          │ │
-│  │ segment_assignments     │ │
-│  │ churn_scores            │ │
-│  │ alerts                  │ │
-│  └─────────────────────────┘ │
-└──────────────────────────────┘
-              │
-    ┌─────────┼────────────┐
-    ▼         ▼            ▼
-┌──────┐ ┌────────┐ ┌──────────┐
-│FastAPI│ │Dash    │ │FastMCP   │
-│:8000  │ │:8050   │ │:8080     │
-└──────┘ └────────┘ └──────────┘
+```mermaid
+flowchart TD
+
+    A[Olist CSVs Kaggle]
+
+    subgraph K[Kedro Pipeline]
+
+        P[Preprocess<br/>• Clean<br/>• Validate<br/>• Pseudonymize]
+
+        F[Feature Engineering<br/>• RFM<br/>• Reviews<br/>• Delivery<br/>• Payments]
+
+        T[Train<br/>• IF<br/>• KMeans<br/>• LGBM<br/>• DP]
+
+        P --> F --> T
+
+        P --> Pq1[(parquet)]
+        F --> Pq2[(parquet)]
+        T --> Pq3[(parquet)]
+    end
+
+    K --> M[MLflow Tracking<br/>experiments + registry]
+    K --> PF[Prefect Flows<br/>training / inference / monitoring]
+
+    M --> DB[(SQLite Serving Layer)]
+    PF --> DB
+
+    DB --> API[FastAPI :8000]
+    DB --> DASH[Dash :8050]
+    DB --> MCP[FastMCP :8080]
 ```
 
 ## ML Modules
