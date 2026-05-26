@@ -146,6 +146,8 @@ cython_debug/
 # Data files
 *.csv
 *.parquet
+!data/07_model_output/*.parquet
+!data/08_reporting/*.parquet
 *.db
 
 # MLflow
