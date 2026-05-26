@@ -14,6 +14,12 @@
 #   - HMAC_SALT and SECRET_KEY must be set before running
 #   - Olist data CSVs must be in data/01_raw/ before running pipelines
 #   - Ollama must be running on host with qwen2.5-coder:7b for AI Chat
+#
+# Profiles:
+#   landing-only — starts only the landing page and its API dependency.
+#                  Use with: docker compose --profile landing-only up -d
+#                  Dockerfile.dashboard can be used for a lightweight
+#                  cloud deployment of just the serving layer.
 
 version: "3.9"
 
@@ -66,6 +72,8 @@ services:
     restart: unless-stopped
 
   api:
+    profiles:
+      - landing-only
     build:
       context: ..
       dockerfile: docker/Dockerfile
@@ -108,9 +116,11 @@ services:
     restart: unless-stopped
 
   landing:
+    profiles:
+      - landing-only
     build:
       context: ..
-      dockerfile: docker/Dockerfile
+      dockerfile: docker/Dockerfile.dashboard  # lightweight; swap to Dockerfile for full stack
     container_name: biz_sentinel_landing
     command: python -m biz_sentinel.serving.dashboard.landing
     ports:

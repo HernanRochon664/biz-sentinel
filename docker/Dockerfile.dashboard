@@ -1,0 +1,37 @@
+FROM python:3.11-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN useradd --create-home --shell /bin/bash biz_sentinel
+
+WORKDIR /app
+
+# Install only serving dependencies
+RUN pip install --no-cache-dir \
+    dash>=2.17.0 \
+    plotly>=5.22.0 \
+    pandas>=2.2.0 \
+    numpy>=1.26.0 \
+    pydantic>=2.7.0 \
+    python-dotenv>=1.0.0 \
+    sqlalchemy>=2.0.0 \
+    fastmcp>=0.1.0 \
+    ollama>=0.4.0
+
+# Copy only what's needed for serving
+COPY src/ ./src/
+COPY data/07_model_output/ ./data/07_model_output/
+COPY data/08_reporting/ ./data/08_reporting/
+COPY conf/ ./conf/
+
+RUN mkdir -p data logs && \
+    chown -R biz_sentinel:biz_sentinel /app
+
+USER biz_sentinel
+
+EXPOSE 8050 8055 8060
+
+# Default command — overridden in Render
+CMD ["python", "-m", "biz_sentinel.serving.dashboard.landing"]
