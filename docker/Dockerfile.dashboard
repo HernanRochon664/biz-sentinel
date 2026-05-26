@@ -9,7 +9,8 @@ RUN useradd --create-home --shell /bin/bash biz_sentinel
 WORKDIR /app
 
 # Install only serving dependencies
-RUN pip install --no-cache-dir \
+RUN pip install --no-cache-dir setuptools && \
+    pip install --no-cache-dir \
     dash>=2.17.0 \
     plotly>=5.22.0 \
     pandas>=2.2.0 \
@@ -22,6 +23,8 @@ RUN pip install --no-cache-dir \
 
 # Copy only what's needed for serving
 COPY src/ ./src/
+COPY pyproject.toml README.md ./
+RUN pip install --no-cache-dir -e .
 COPY data/07_model_output/ ./data/07_model_output/
 COPY data/08_reporting/ ./data/08_reporting/
 COPY conf/ ./conf/
