@@ -14,11 +14,11 @@ Ollama is the recommended runtime for running LLMs with BizSentinel's MCP server
 
 ### Recommended Models
 
-| Model | VRAM Required | Quality | Use case |
-|---|---|---|---|
-| `llama3.1:8b` | 8GB RAM (CPU) | Good | Development, laptops |
-| `llama3.3:70b` | 12GB+ VRAM | Excellent | GPU workstations |
-| `phi4-mini` | 4GB RAM | Basic | Resource-constrained |
+| Model | RAM/VRAM | Speed (CPU) | Speed (GPU) | Tool Use |
+|-------|----------|-------------|-------------|----------|
+| `qwen2.5-coder:7b` | 8GB RAM | 30s–2min | 5–15s | ✓ Stable |
+| `qwen2.5-coder:3b` | 4GB RAM | 15–30s | 3–8s | ⚠ Unstable |
+| `gemma4:e4b` | 4GB RAM | 15–30s | 3–8s | ⚠ Parser issues in some clients |
 
 Pull the recommended model:
 
@@ -48,6 +48,8 @@ npx @modelcontextprotocol/inspector \
 ```
 
 The Inspector opens a web UI where you can list available tools, test each one manually, and inspect raw request/response payloads — useful during development.
+
+> **Note:** For the web chat interface (`localhost:8060`), the MCP server does not need to be started separately. The `chat.py` app calls tools directly via Python imports. The stdio MCP server is only needed for external MCP clients (Claude Desktop, MCP Inspector, etc.).
 
 ## Connecting to Claude Desktop (for Developers)
 
@@ -140,6 +142,16 @@ get_segment_profile(segment="at_risk")
 > 1. **Send a win-back email** with a 15 % discount code — this recovered 22 % of at-risk customers in last quarter's campaign.
 > 2. **Increase survey frequency** — ask why they're disengaging.
 > 3. **Monitor weekly** — move them to the "churned" segment if no activity for 60 more days.
+
+> **Note:** Small models (3b) may return tool calls as plain text JSON instead of structured `tool_calls`. BizSentinel's chat interface includes automatic fallback parsing to handle this correctly.
+
+## Known Limitations
+
+- **qwen2.5-coder:7b** on CPU takes 30s–2min per response — acceptable for interactive use but not for real-time.
+- Models smaller than **7b** have **unreliable tool use**; expect occasional failures or malformed responses.
+- The **web chat interface** (localhost:8060) handles slow responses with a loading indicator — use it for best UX on CPU.
+- For **production use**, a GPU with **12GB+ VRAM** is recommended (e.g., NVIDIA T4 or better).
+- **gemma4:e4b** tool calling may fail via OpenAI-compatible API — this is a known issue fixed in Ollama 0.20.2+.
 
 ## Privacy Notes
 

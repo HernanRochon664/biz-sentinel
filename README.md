@@ -1,51 +1,61 @@
 # BizSentinel
 
-E-commerce business intelligence platform with anomaly detection, customer segmentation, and churn prediction.
+*End-to-end ML platform for e-commerce customer intelligence*
 
 ![Python](https://img.shields.io/badge/python-3.11-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Tests](https://img.shields.io/badge/tests-127-passing)
-![Coverage](https://img.shields.io/badge/coverage-77%25-yellow)
+![Coverage](https://img.shields.io/badge/coverage-82%25-green)
 
 ## Overview
 
-BizSentinel processes e-commerce transaction data (Olist public dataset, ~100k orders) through three ML modules to produce actionable business intelligence: it flags anomalous transactions and customer behavior, segments customers into business-meaningful groups (champions, at-risk, lost, etc.), and predicts churn probability for every customer. All outputs are served through a REST API, an interactive Dash dashboard, and an MCP server for LLM-based querying.
+BizSentinel is a production-grade ML pipeline that processes 97,896 customers from the Olist Brazilian E-commerce dataset (Sep 2016 – Oct 2018, 25 months), applying three ML modules to detect anomalies, segment customers, and predict churn. The pipeline ingests 7 raw CSV files (customers, orders, items, payments, reviews, products, sellers), cleans and pseudonymizes at ingestion, engineers 9 RFM and behavioral features, then trains and scores all three models in a single Kedro DAG. Outputs are stored as parquet files and loaded into a SQLite serving database for API and dashboard access.
 
-The three ML modules share a common feature engineering pipeline (RFM + behavioral features) and run sequentially: anomaly scores and segment labels are fed as features into the churn model. This creates a dependency chain where each module builds on the outputs of the previous ones. The supervised churn model uses differential privacy (ε ≤ 2) to protect individual customer records.
+The three modules run sequentially and are architecturally connected: Module A (Isolation Forest) produces anomaly scores per customer, Module B (K-Means, k=3) assigns business segment labels (champions, loyal, at_risk, etc.), and both outputs become features for Module C (LightGBM churn classifier). The final churn model uses 11 features — 9 behavioral + anomaly_score + segment_encoded. This design means the unsupervised modules directly improve the supervised model's predictive power.
 
-From an MLOps perspective, BizSentinel uses Kedro for pipeline DAG management with MLflow experiment tracking, Prefect for flow orchestration (training, inference, monitoring), and containerized deployment via Docker Compose with GitHub Actions CI/CD. Privacy controls (HMAC-SHA256 pseudonymization at ingestion, DP-SGD at training) are built in, not bolted on. SQLAlchemy provides the serving-layer database, and all scoring outputs are stored as parquet files in a layered data catalog.
+From an MLOps perspective, BizSentinel implements Kedro pipelines with MLflow experiment tracking and model registry, Prefect flows for orchestration and monitoring, a FastAPI REST layer with JWT auth, a Dash UI with three views (overview KPIs, anomaly table, segment charts), and a local LLM assistant via FastMCP + Ollama. All services run in Docker containers behind a single `docker compose up`.
 
 ## Architecture
 
-```mermaid
-flowchart TD
-
-    A[Olist CSVs Kaggle]
-
-    subgraph K[Kedro Pipeline]
-
-        P[Preprocess<br/>• Clean<br/>• Validate<br/>• Pseudonymize]
-
-        F[Feature Engineering<br/>• RFM<br/>• Reviews<br/>• Delivery<br/>• Payments]
-
-        T[Train<br/>• IF<br/>• KMeans<br/>• LGBM<br/>• DP]
-
-        P --> F --> T
-
-        P --> Pq1[(parquet)]
-        F --> Pq2[(parquet)]
-        T --> Pq3[(parquet)]
-    end
-
-    K --> M[MLflow Tracking<br/>experiments + registry]
-    K --> PF[Prefect Flows<br/>training / inference / monitoring]
-
-    M --> DB[(SQLite Serving Layer)]
-    PF --> DB
-
-    DB --> API[FastAPI :8000]
-    DB --> DASH[Dash :8050]
-    DB --> MCP[FastMCP :8080]
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│  Data                                                                 │
+│  7 Olist CSVs ──▶ Kedro Pipelines ──▶ Parquet Layers ──▶ MLflow     │
+│  (data/01_raw/)   preprocessing        (02-07)         experiment    │
+│                     feature eng                         registry     │
+│                     training                                          │
+└────────────────────────────────┬─────────────────────────────────────┘
+                                 │ load_scores_to_db.py
+                                 ▼
+                    ┌───────────────────────┐
+                    │    SQLite DB           │
+                    │  (data/biz_sentinel.db)│
+                    │  anomaly_scores        │
+                    │  churn_scores          │
+                    │  segment_assignments   │
+                    │  alerts                │
+                    └──────┬────────────────┘
+                           │
+          ┌────────────────┼──────────────────┐
+          │                │                  │
+          ▼                ▼                  ▼
+   ┌──────────┐    ┌────────────┐    ┌──────────────┐
+   │ FastAPI  │    │ Dash       │    │ Dash         │
+   │ :8000    │    │ Dashboard  │    │ Landing      │
+   │ /health  │    │ :8050      │    │ :8055        │
+   │ /anomalies│   │ Overview   │    │               │
+   │ /customers│   │ Anomalies  │    │               │
+   │ /alerts   │    │ Segments   │    │ Dash Chat    │
+   └──────────┘    └────────────┘    │ :8060        │
+                                      └──────┬───────┘
+                                             │
+                                             ▼
+                                   ┌─────────────────┐
+                                   │ FastMCP (stdio)  │
+                                   │ 4 tools          │
+                                   │ ◄─── Ollama      │
+                                   │     qwen2.5-coder│
+                                   └─────────────────┘
 ```
 
 ## ML Modules
@@ -53,158 +63,135 @@ flowchart TD
 | Module | Algorithm | Primary Metric | Privacy |
 |--------|-----------|---------------|---------|
 | Anomaly Detection | Isolation Forest + SHAP | AUC-PR | Pseudonymization |
-| Segmentation | K-Means (tuned via silhouette score) | Silhouette Score | Pseudonymization |
-| Churn Scoring | LightGBM + SHAP (+ DP baseline) | ROC-AUC | Differential Privacy (ε ≤ 2) |
+| Segmentation | K-Means (k=3) | Silhouette Score | Pseudonymization |
+| Churn Scoring | LightGBM + SHAP | ROC-AUC | Differential Privacy (ε≤5) |
+
+**Module dependency chain:** Feature matrix (9 RFM/behavioral features) → Module A scores + labels → 11-feature input for Module C.
+
+## Results
+
+| Metric | Value |
+|--------|-------|
+| Customers processed | 97,896 |
+| Anomaly rate | 1.47% (1,440 flagged as anomalous) |
+| Churn rate | 70.77% (180-day inactivity threshold) |
+| Alerts generated | 69,848 |
+| Dataset | Olist Brazilian E-commerce (Sep 2016 – Oct 2018, 25 months) |
+| RFM snapshot date | 2018-10-17 |
 
 ## Tech Stack
 
-| Category | Technology | Minimum Version |
-|----------|-----------|-----------------|
-| Language | Python | 3.11 |
-| ML / Data | scikit-learn, LightGBM, SHAP, pandas, NumPy | ≥1.5.0 / ≥4.3.0 / ≥0.46.0 |
-| Pipeline | Kedro | ≥0.19.5 |
-| Tracking | MLflow | ≥2.13.2 |
-| Orchestration | Prefect | ≥2.19.0 |
-| Privacy | diffprivlib | ≥0.2.1 |
-| API | FastAPI + Uvicorn | ≥0.111.0 |
-| Dashboard | Dash + Plotly | ≥2.17.0 |
-| MCP | FastMCP | ≥0.1.0 |
-| Database | SQLAlchemy + SQLite | ≥2.0.30 |
-| Auth | python-jose (JWT) | ≥3.3.0 |
-| Infrastructure | Docker, Docker Compose | |
-| CI/CD | GitHub Actions | |
-
-## Project Structure
-
-```
-src/biz_sentinel/
-├── domain/models.py              # Pydantic data contracts (Raw → Pseudonymized → ScoredCustomer)
-├── pipelines/
-│   ├── preprocessing/            # Data cleaning, validation, pseudonymization
-│   │   ├── nodes.py              # clean_orders, clean_customers, pseudonymize_customers, build_transactions
-│   │   └── pipeline.py           # Kedro pipeline definition
-│   ├── feature_engineering/      # RFM, review, delivery, payment features
-│   │   ├── nodes.py              # compute_rfm, assemble_feature_matrix, etc.
-│   │   └── pipeline.py
-│   ├── training/                 # All three ML modules
-│   │   ├── nodes.py              # Isolation Forest (anomaly) + SHAP
-│   │   ├── segmentation_nodes.py # K-Means clustering + segment labeling
-│   │   ├── churn_nodes.py        # LightGBM + DP logistic regression baseline + SHAP
-│   │   └── pipeline.py           # Orchestrates all three modules
-│   └── inference/                # Placeholder (future batch scoring)
-├── flows/
-│   ├── training_flow.py          # Prefect flow: preprocessing → FE → training
-│   ├── inference_flow.py         # Prefect flow: champion model → scoring → DB
-│   └── monitoring_flow.py        # Prefect flow: data drift + score distribution
-├── privacy/pseudonymizer.py      # HMAC-SHA256 pseudonymization utilities
-├── serving/
-│   ├── api/main.py               # FastAPI with JWT auth (4 endpoints)
-│   ├── api/database.py           # SQLAlchemy ORM models
-│   ├── api/schemas.py            # Pydantic response models
-│   ├── dashboard/app.py          # Dash (3 tabs: Overview, Anomalies, Segments)
-│   └── mcp/server.py             # FastMCP (4 tools + Ollama integration)
-├── scripts/load_scores_to_db.py  # Pipeline outputs → SQLite
-├── pipeline_registry.py          # Kedro __default__ pipeline wiring
-└── settings.py
-├── conf/base/
-│   ├── catalog.yml               # Data catalog (CSV → parquet layers)
-│   ├── parameters.yml            # All pipeline parameters
-│   └── logging.yml
-├── docker/
-│   ├── Dockerfile                # Multi-stage build
-│   ├── docker-compose.yml        # Production services
-│   └── docker-compose.dev.yml    # Dev overrides
-├── tests/
-│   ├── pipelines/                # 93 tests across 5 test files
-│   ├── serving/                  # 37 tests (API + MCP)
-│   └── flows/                    # 11 tests
-└── notebooks/
-    └── 01_olist_eda.ipynb
-```
+| Category | Technology |
+|----------|-----------|
+| ML / Data | pandas, scikit-learn, lightgbm, shap, diffprivlib |
+| Pipelines | Kedro 1.3.x, Prefect, MLflow |
+| Serving | FastAPI, Dash, FastMCP, Ollama |
+| Storage | SQLite (dev), PostgreSQL (prod-ready) |
+| Infrastructure | Docker, GitHub Actions, uv, Ruff, Pyright |
 
 ## Quick Start
 
 ```bash
-# 1. Clone and install
-git clone https://github.com/anomalyco/biz-sentinel.git
+# a) Clone and install
+git clone https://github.com/HernanRochon664/biz-sentinel.git
 cd biz-sentinel
-uv sync
+uv sync --dev
 
-# 2. Download Olist data
-# https://www.kaggle.com/olistbr/brazilian-ecommerce
-# Place CSVs in data/01_raw/
-
-# 3. Configure environment
+# b) Configure environment
 cp .env.example .env
-# Edit .env: set HMAC_SALT, SECRET_KEY, DATABASE_URL
+# Edit .env: set HMAC_SALT and SECRET_KEY to random strings
 
-# 4. Run the full pipeline
-kedro run
+# c) Download data
+# Download from https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce
+# Place CSV files in data/01_raw/
 
-# 5. Load scores to database
-uv run python -m biz_sentinel.scripts.load_scores_to_db
+# d) Run the pipeline
+export $(grep -v '^#' .env | xargs) && uv run kedro run
+# Or step by step:
+make pipeline-preprocessing
+make pipeline-features
+make pipeline-training
 
-# 6. Start serving (Docker)
-docker compose -f docker/docker-compose.yml up
-# Or individually:
-#   API:       uv run uvicorn biz_sentinel.serving.api.main:app --port 8000
-#   Dashboard: uv run python -m biz_sentinel.serving.dashboard.app
-#   MCP:       uv run python -m biz_sentinel.serving.mcp.server
+# e) Load results to database
+make load-db
 
-# 7. Access
-# API:        http://localhost:8000/docs
-# Dashboard:  http://localhost:8050
-# MCP:        http://localhost:8080
+# f) Start all services (Docker)
+docker compose -f docker/docker-compose.yml up -d
+# Landing page: http://localhost:8055
+
+# g) Or start individually:
+make landing    # http://localhost:8055 — start here
+make dashboard  # http://localhost:8050
+make api        # http://localhost:8000/docs
+make chat       # http://localhost:8060 (requires Ollama)
+
+# h) AI Chat (optional)
+# Install Ollama: https://ollama.com
+ollama pull qwen2.5-coder:7b
+make chat
+```
+
+## Project Structure
+
+```
+biz-sentinel/
+├── src/biz_sentinel/
+│   ├── pipelines/              # Kedro ML pipelines
+│   │   ├── preprocessing/      # Data cleaning + pseudonymization
+│   │   ├── feature_engineering/ # RFM + behavioral features
+│   │   └── training/           # IsoForest + KMeans + LightGBM
+│   ├── serving/
+│   │   ├── api/                # FastAPI REST endpoints
+│   │   ├── dashboard/          # Dash UI (landing, dashboard, chat)
+│   │   └── mcp/                # FastMCP server for LLM agents
+│   ├── flows/                  # Prefect orchestration flows
+│   ├── privacy/                # Pseudonymization + DP utilities
+│   └── scripts/                # load_scores_to_db, ollama_chat
+├── tests/                      # 127 unit tests, 82% coverage
+├── docs/                       # Architecture, privacy, deployment docs
+├── docker/                     # Dockerfile + docker-compose
+├── notebooks/                  # EDA notebook (01_olist_eda.ipynb)
+├── Makefile                    # All commands
+└── conf/                       # Kedro configuration
 ```
 
 ## Development
 
 ```bash
-# Tests
-uv run pytest
-
-# Type checking
-uv run pyright src/
-
-# Linting and formatting
-uv run ruff check src/
-uv run ruff format src/
-
-# All quality checks in order
-ruff check src/ && pyright src/ && pytest
+make test       # Run unit tests only (~30s)
+make test-all   # Includes integration tests (~9min)
+make quality    # Ruff lint + Pyright type check
+make coverage   # HTML coverage report (htmlcov/)
+make mlflow-ui  # View experiment tracking (http://localhost:5000)
 ```
 
 ## Privacy Design
 
-- **Pseudonymization at ingestion**: All customer IDs are replaced with HMAC-SHA256 hashes before entering the pipeline. Salt is stored separately from the database.
-- **Differential privacy at training**: The churn scoring module (LightGBM supervised model) has a DP baseline using diffprivlib Logistic Regression with ε ≤ 2 (validated at evaluation). The anomaly and segmentation modules are unsupervised and use pseudonymization only.
-- **API security**: JWT authentication on all endpoints except `/health`. MCP tools return scores and pseudonymized hashes only — no raw customer data is exposed to the LLM or API clients.
-- **Full details**: [docs/privacy_design.md](docs/privacy_design.md)
+- **Layer 1 — Pseudonymization at ingestion**: All `customer_id` and `customer_unique_id` values replaced with HMAC-SHA256 hashes before entering the pipeline. Salt is stored in `HMAC_SALT` env var, separate from the database.
+- **Layer 2 — Differential Privacy at training**: The churn model is trained with a diffprivlib Logistic Regression baseline at ε=2.0 (≤5 bound, validated at evaluation). Unsupervised modules (anomaly, segmentation) use pseudonymization only.
+- **Layer 3 — JWT authentication**: All API endpoints except `/health` require a Bearer JWT token (HS256). Token verified via `python-jose`.
+- **Layer 4 — MCP data isolation**: The FastMCP server exposes 4 read-only tools that return scores and segment descriptions only — never raw customer data. The LLM has no access to PII or transaction details.
 
-## Deployment Options
+Full details: [docs/privacy_design.md](docs/privacy_design.md)
 
-| Mode | Implementation | Status |
-|------|---------------|--------|
-| Batch inference via Prefect flow | `biz_sentinel/flows/training_flow.py` | ✓ Implemented |
-| REST API (FastAPI) | `biz_sentinel/serving/api/main.py` | ✓ Implemented |
-| Interactive dashboard (Dash) | `biz_sentinel/serving/dashboard/app.py` | ✓ Implemented |
-| MCP server + Ollama | `biz_sentinel/serving/mcp/server.py` | ✓ Implemented |
+## AI Assistant
 
-Real-time transaction scoring is stubbed (returns placeholder). Cloud deployment (DigitalOcean) and CD automation are configured (GitHub Actions builds and pushes Docker images) but require manual first-deploy setup.
+BizSentinel includes a local AI assistant powered by Ollama and FastMCP. The assistant uses `qwen2.5-coder:7b` to query ML results in natural language — it can summarize anomalies, explain customer risk, describe segment profiles, and recommend business actions. All inference runs locally; no data leaves the machine. Accessible at http://localhost:8060 or via MCP protocol for external LLM clients (Claude Desktop, custom agents). Hardware note: the 7b model requires ~8GB RAM (CPU) or 4GB VRAM (GPU). Response time: 30s–2min on CPU, 5–15s on GPU.
 
 ## Test Coverage
 
-Current: **127 tests** (unit only), **~77% coverage**. Run with:
+127 tests, 82% coverage.
 
 ```bash
-uv run pytest --cov=src --cov-report=term-missing
+make test       # unit tests only (~30s)
+make test-all   # includes integration tests (~9min)
 ```
 
-Coverage reports are generated as HTML in `htmlcov/` and uploaded as artifacts in CI.
+Coverage reports generated as HTML in `htmlcov/` and uploaded as CI artifacts.
 
 ## Portfolio Context
 
-This project demonstrates end-to-end ML engineering: data pipeline construction (Kedro), experiment tracking (MLflow), flow orchestration (Prefect), privacy-preserving ML (diffprivlib), model interpretability (SHAP), API design (FastAPI + JWT), interactive visualization (Dash), and LLM tool integration (FastMCP). It is not a production system — the inference pipeline is partially stubbed, there is no real-time scoring, no cloud deployment is active, and no federated learning is implemented. These are natural extension points. What is implemented works end-to-end on the Olist dataset from raw CSV files to a running multi-service application.
+This project demonstrates end-to-end pipeline ownership: Kedro DAG management from raw CSVs to scored parquet outputs, MLflow experiment tracking across three model families, Prefect orchestration with retry/caching, privacy-aware ML via HMAC pseudonymization and diffprivlib DP, multiple serving modes (REST API with JWT, Dash dashboard, MCP LLM tools), and production-grade code quality (type annotations, Ruff linting, Pyright, CI/CD). The inference pipeline is a stub awaiting a real-time scoring endpoint; the monitoring flow detects drift but has no automated retraining. Next steps: real-time scoring endpoint, cloud deployment (DigitalOcean), and federated learning for multi-tenant privacy.
 
 ## License
 
