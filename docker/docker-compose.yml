@@ -1,14 +1,19 @@
 # BizSentinel Docker Compose — Production Profile
 #
 # Usage:
-#   Production:  docker compose -f docker/docker-compose.yml up -d
-#   Development: docker compose -f docker/docker-compose.yml \
-#                              -f docker/docker-compose.dev.yml up
+#   Start all services:  docker compose -f docker/docker-compose.yml up -d
+#   Access points:
+#     Landing page:  http://localhost:8055  (start here)
+#     Dashboard:     http://localhost:8050
+#     AI Chat:       http://localhost:8060
+#     API docs:      http://localhost:8000/docs
+#     MLflow UI:     http://localhost:5000
 #
 # Prerequisites:
 #   - Copy .env.example to .env and fill required values
 #   - HMAC_SALT and SECRET_KEY must be set before running
 #   - Olist data CSVs must be in data/01_raw/ before running pipelines
+#   - Ollama must be running on host with qwen2.5-coder:7b for AI Chat
 
 version: "3.9"
 
@@ -102,24 +107,44 @@ services:
       - ../.env
     restart: unless-stopped
 
-  mcp:
+  landing:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    container_name: biz_sentinel_mcp
-    command: python -m biz_sentinel.serving.mcp.server
+    container_name: biz_sentinel_landing
+    command: python -m biz_sentinel.serving.dashboard.landing
     ports:
-      - "8080:8080"
+      - "8055:8055"
     depends_on:
       - api
     environment:
-      - API_BASE_URL=http://api:8000
-      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
-      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.1:8b}
+      - DATABASE_URL=${DATABASE_URL}
       - ENVIRONMENT=production
     env_file:
       - ../.env
     restart: unless-stopped
+
+  chat:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: biz_sentinel_chat
+    command: python -m biz_sentinel.serving.dashboard.chat
+    ports:
+      - "8060:8060"
+    depends_on:
+      - api
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2.5-coder:7b}
+      - ENVIRONMENT=production
+    env_file:
+      - ../.env
+    restart: unless-stopped
+
+  # MCP server runs via stdio — use: make mcp
+  # Not included as a Docker service (stdio transport is not HTTP-based)
 
 volumes:
   mlflow_data:

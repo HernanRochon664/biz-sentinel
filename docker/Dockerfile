@@ -24,7 +24,8 @@ RUN pip install --no-cache-dir /tmp/*.whl && rm /tmp/*.whl
 
 COPY pyproject.toml ./
 RUN pip install --no-cache-dir \
-    kedro>=0.19.5 \
+    kedro>=1.3.0 \
+    kedro-datasets>=3.0.0 \
     prefect>=2.19.0 \
     mlflow>=2.13.2 \
     fastapi>=0.111.0 \
@@ -34,6 +35,7 @@ RUN pip install --no-cache-dir \
     fastmcp>=0.1.0 \
     lightgbm>=4.3.0 \
     shap>=0.46.0 \
+    ollama>=0.4.0 \
     diffprivlib>=0.6.0
 
 COPY conf/ ./conf/
@@ -44,7 +46,7 @@ RUN mkdir -p data logs && \
 
 USER biz_sentinel
 
-EXPOSE 8000 8050 8080
+EXPOSE 8000 8050 8055 8060
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
