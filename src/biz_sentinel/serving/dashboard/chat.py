@@ -11,6 +11,8 @@ import dash
 import ollama
 from dash import Dash, Input, Output, State, callback, dcc, html
 
+import os
+
 from biz_sentinel.scripts.ollama_chat import SYSTEM_PROMPT, TOOLS, call_tool
 
 # ---------------------------------------------------------------------------
@@ -385,4 +387,6 @@ def handle_send(n_clicks: int, n_submit: int, messages: list[dict], user_input: 
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8060, debug=False)
+    port = int(os.getenv("PORT", "8060"))
+    debug = os.getenv("ENVIRONMENT", "production") == "development"
+    app.run(host="0.0.0.0", port=port, debug=debug)

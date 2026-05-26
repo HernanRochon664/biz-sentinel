@@ -4,6 +4,8 @@ Entry point for the BizSentinel system. Provides access to the Visual Dashboard
 (port 8050) and the AI Assistant (port 8060).
 """
 
+import os
+
 from dash import Dash, html
 
 # --- Color scheme (matches app.py) ---
@@ -268,4 +270,6 @@ app.layout = html.Div(
 )
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8055, debug=False)
+    port = int(os.getenv("PORT", "8055"))
+    debug = os.getenv("ENVIRONMENT", "production") == "development"
+    app.run(host="0.0.0.0", port=port, debug=debug)
