@@ -239,7 +239,7 @@ app.layout = html.Div(
                 ),
                 html.A(
                     "View on GitHub →",
-                    href="https://github.com/hernanrochon/biz-sentinel",
+                    href="https://github.com/HernanRochon664/biz-sentinel",
                     target="_blank",
                     rel="noopener noreferrer",
                     style={
