@@ -1,6 +1,6 @@
 PYTHON = uv run python
-KEDRO = export $$(grep -v '^#' .env | xargs) && uv run kedro
-ENV_EXPORT = export $$(grep -v '^#' .env | xargs)
+KEDRO = export $$(grep -v '^\#' .env | xargs) && uv run kedro
+ENV_EXPORT = export $$(grep -v '^\#' .env | xargs)
 
 .DEFAULT_GOAL := help
 

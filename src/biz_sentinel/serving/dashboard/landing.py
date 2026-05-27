@@ -8,6 +8,10 @@ import os
 
 from dash import Dash, html
 
+DASHBOARD_URL = os.getenv("DASHBOARD_URL", "http://localhost:8050")
+CHAT_URL = os.getenv("CHAT_URL", "http://localhost:8060")
+CHAT_ENABLED = os.getenv("CHAT_ENABLED", "true").lower() == "true"
+
 # --- Color scheme (matches app.py) ---
 COLORS = {
     "primary": "#2C3E50",
@@ -141,7 +145,7 @@ app.layout = html.Div(
                         ),
                         html.A(
                             "Open Dashboard",
-                            href="https://biz-sentinel-dashboard-7le8.onrender.com",
+                            href=DASHBOARD_URL,
                             target="_blank",
                             rel="noopener noreferrer",
                             style={
@@ -198,7 +202,18 @@ app.layout = html.Div(
                                 "margin": "0 0 24px",
                             },
                         ),
-                        html.Button(
+                        html.A(
+                            "Start Chat",
+                            href=CHAT_URL,
+                            target="_blank",
+                            rel="noopener noreferrer",
+                            style={
+                                **BUTTON_BASE,
+                                "background": COLORS["success"],
+                                "color": "white",
+                                "border": "none",
+                            },
+                        ) if CHAT_ENABLED else html.Button(
                             "Start Chat",
                             disabled=True,
                             style={
