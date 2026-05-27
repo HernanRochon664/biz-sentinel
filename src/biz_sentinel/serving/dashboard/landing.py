@@ -141,7 +141,7 @@ app.layout = html.Div(
                         ),
                         html.A(
                             "Open Dashboard",
-                            href="http://localhost:8050",
+                            href="https://biz-sentinel-dashboard-7le8.onrender.com",
                             target="_blank",
                             rel="noopener noreferrer",
                             style={
@@ -200,7 +200,7 @@ app.layout = html.Div(
                         ),
                         html.A(
                             "Start Chat",
-                            href="http://localhost:8060",
+                            href="#",
                             target="_blank",
                             rel="noopener noreferrer",
                             style={
@@ -208,10 +208,12 @@ app.layout = html.Div(
                                 "background": COLORS["success"],
                                 "color": "white",
                                 "border": "none",
+                                "opacity": "0.6",
+                                "cursor": "not-allowed",
                             },
                         ),
                         html.P(
-                            "Requires Ollama running locally with qwen2.5-coder:7b",
+                            "AI Chat runs locally only. See README for setup instructions.",
                             style={
                                 "color": "#6C757D",
                                 "fontSize": "12px",
