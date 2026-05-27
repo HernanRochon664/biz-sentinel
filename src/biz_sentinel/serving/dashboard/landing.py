@@ -198,18 +198,19 @@ app.layout = html.Div(
                                 "margin": "0 0 24px",
                             },
                         ),
-                        html.A(
+                        html.Button(
                             "Start Chat",
-                            href="#",
-                            target="_blank",
-                            rel="noopener noreferrer",
+                            disabled=True,
                             style={
-                                **BUTTON_BASE,
-                                "background": COLORS["success"],
+                                "width": "100%",
+                                "padding": "14px",
+                                "background": "#95a5a6",
                                 "color": "white",
                                 "border": "none",
-                                "opacity": "0.6",
+                                "borderRadius": "6px",
+                                "fontSize": "16px",
                                 "cursor": "not-allowed",
+                                "marginTop": "16px",
                             },
                         ),
                         html.P(
