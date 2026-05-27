@@ -155,6 +155,12 @@ biz-sentinel/
 └── conf/                       # Kedro configuration
 ```
 
+## Live Demo
+
+- **Landing:** https://biz-sentinel-dashboard.onrender.com
+- **Dashboard:** https://biz-sentinel-dashboard-7le8.onrender.com
+- **AI Chat:** Local only (requires Ollama + qwen2.5-coder:7b)
+
 ## Development
 
 ```bash
