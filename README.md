@@ -182,7 +182,12 @@ Full details: [docs/privacy_design.md](docs/privacy_design.md)
 
 ## AI Assistant
 
-BizSentinel includes a local AI assistant powered by Ollama and FastMCP. The assistant uses `qwen2.5-coder:7b` to query ML results in natural language — it can summarize anomalies, explain customer risk, describe segment profiles, and recommend business actions. All inference runs locally; no data leaves the machine. Accessible at http://localhost:8060 or via MCP protocol for external LLM clients (Claude Desktop, custom agents). Hardware note: the 7b model requires ~8GB RAM (CPU) or 4GB VRAM (GPU). Response time: 30s–2min on CPU, 5–15s on GPU.
+BizSentinel includes a local AI assistant powered by Ollama and FastMCP. The assistant uses `qwen2.5-coder:7b` to query ML results in natural language — it can summarize anomalies, explain customer risk, describe segment profiles, and recommend business actions. All inference runs locally; no data leaves the machine. Accessible at http://localhost:8060 or via MCP protocol for external LLM clients (Claude Desktop, custom agents).
+
+**Hardware requirements for AI Chat:**
+- Minimum: 8GB RAM free (CPU inference, ~2min response time)
+- Recommended: GPU with 8GB+ VRAM (5–15s response time)
+- Models: qwen2.5-coder:7b (stable), gemma4:e4b (better quality, needs more RAM)
 
 ## Test Coverage
 
