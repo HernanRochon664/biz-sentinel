@@ -70,13 +70,24 @@ app = Dash(__name__, title="BizSentinel")
 
 app.layout = html.Div(
     [
+        html.Style("body { margin: 0; }"),  # type: ignore[attr-defined]
         # Header
         html.Div(
             [
-                html.H1("BizSentinel", style={"color": COLORS["primary"], "margin": "0"}),
+                html.A(
+                    "← Back",
+                    href="http://localhost:8055",
+                    style={
+                        "color": "#6C757D",
+                        "textDecoration": "none",
+                        "fontSize": "14px",
+                        "marginRight": "16px",
+                    },
+                ),
+                html.H1("BizSentinel", style={"color": COLORS["primary"], "margin": "0 0 12px 0"}),
                 html.P(
                     "Business Intelligence & Anomaly Detection",
-                    style={"color": "#6C757D", "margin": "4px 0 0 0"},
+                    style={"color": "#6C757D", "margin": "4px 0 0 16px"},
                 ),
                 html.Button(
                     "Refresh Data",
@@ -150,7 +161,7 @@ def render_tab(tab: str, _n_clicks: int) -> html.Div | html.P:
 
         return html.Div(
             [
-                html.H3("Overview", style={"marginBottom": "20px"}),
+                html.H3("Overview", style={"margin": "0 0 20px 0"}),
                 html.Div(
                     [
                         kpi_card("Anomaly Rate", anomaly_rate, COLORS["danger"]),

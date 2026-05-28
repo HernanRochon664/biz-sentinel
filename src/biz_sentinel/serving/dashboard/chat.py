@@ -5,13 +5,12 @@ Reuses the exact tool-calling logic from biz_sentinel.scripts.ollama_chat.
 """
 
 import json
+import os
 import re
 
 import dash
 import ollama
 from dash import Dash, Input, Output, State, callback, dcc, html
-
-import os
 
 from biz_sentinel.scripts.ollama_chat import SYSTEM_PROMPT, TOOLS, call_tool
 
@@ -64,12 +63,12 @@ def _assistant_bubble(text: str) -> html.Div:
         text,
         style={
             "alignSelf": "flex-start",
-            "background": COLORS["card"],
+            "background": "#EBF5FB",
             "color": COLORS["primary"],
             "padding": "10px 16px",
             "borderRadius": "16px 16px 16px 4px",
             "maxWidth": "75%",
-            "border": f"1px solid {COLORS['border']}",
+            "border": "1px solid #BBDEFB",
             "whiteSpace": "pre-wrap",
             "fontSize": "14px",
             "lineHeight": "1.5",
@@ -261,6 +260,21 @@ app.layout = html.Div(
                         "margin": "0",
                     },
                 ),
+                html.Button(
+                    "Restart",
+                    id="restart-btn",
+                    n_clicks=0,
+                    style={
+                        "marginLeft": "auto",
+                        "padding": "6px 14px",
+                        "background": "transparent",
+                        "color": "#6C757D",
+                        "border": f"1px solid {COLORS['border']}",
+                        "borderRadius": "4px",
+                        "fontSize": "13px",
+                        "cursor": "pointer",
+                    },
+                ),
             ],
             style={
                 "display": "flex",
@@ -361,6 +375,16 @@ app.layout = html.Div(
 @callback(
     Output("messages-store", "data"),
     Output("chat-messages", "children"),
+    Input("restart-btn", "n_clicks"),
+    prevent_initial_call=True,
+)
+def handle_restart(n_clicks: int):
+    return _INITIAL_STORE, render_messages(_INITIAL_STORE)
+
+
+@callback(
+    Output("messages-store", "data", allow_duplicate=True),
+    Output("chat-messages", "children", allow_duplicate=True),
     Output("chat-input", "value"),
     Input("send-btn", "n_clicks"),
     Input("chat-input", "n_submit"),
