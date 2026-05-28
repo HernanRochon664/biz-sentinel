@@ -124,18 +124,11 @@ app.layout = html.Div(
             style={"margin": "0 32px"},
         ),
         # Tab content
-        html.Div(
-            id="tab-content",
-            style={"flex": "1", "overflowY": "auto", "padding": "24px 32px"},
-        ),
+        html.Div(id="tab-content", style={"padding": "24px 32px"}),
     ],
     style={
         "background": COLORS["background"],
-        "height": "100vh",
-        "display": "flex",
-        "flexDirection": "column",
-        "overflow": "hidden",
-        "boxSizing": "border-box",
+        "minHeight": "100vh",
         "fontFamily": "system-ui, -apple-system, sans-serif",
     },
 )
