@@ -68,15 +68,46 @@ def kpi_card(title: str, value: str, color: str = COLORS["primary"]) -> html.Div
 # --- App layout ---
 app = Dash(__name__, title="BizSentinel")
 
+app.index_string = """
+<!DOCTYPE html>
+<html>
+    <head>
+        {%metas%}
+        <title>{%title%}</title>
+        {%favicon%}
+        {%css%}
+        <style>body{margin:0}</style>
+    </head>
+    <body>
+        {%app_entry%}
+        <footer>
+            {%config%}
+            {%scripts%}
+            {%renderer%}
+        </footer>
+    </body>
+</html>
+"""
+
 app.layout = html.Div(
     [
         # Header
         html.Div(
             [
-                html.H1("BizSentinel", style={"color": COLORS["primary"], "margin": "0"}),
+                html.A(
+                    "← Back",
+                    href="http://localhost:8055",
+                    style={
+                        "color": "#6C757D",
+                        "textDecoration": "none",
+                        "fontSize": "14px",
+                        "marginRight": "16px",
+                    },
+                ),
+                html.H1("BizSentinel", style={"color": COLORS["primary"], "margin": "0 0 12px 0"}),
                 html.P(
                     "Business Intelligence & Anomaly Detection",
-                    style={"color": "#6C757D", "margin": "4px 0 0 0"},
+                    style={"color": "#6C757D", "margin": "4px 0 0 16px"},
                 ),
                 html.Button(
                     "Refresh Data",
@@ -150,7 +181,7 @@ def render_tab(tab: str, _n_clicks: int) -> html.Div | html.P:
 
         return html.Div(
             [
-                html.H3("Overview", style={"marginBottom": "20px"}),
+                html.H3("Overview", style={"margin": "0 0 20px 0"}),
                 html.Div(
                     [
                         kpi_card("Anomaly Rate", anomaly_rate, COLORS["danger"]),

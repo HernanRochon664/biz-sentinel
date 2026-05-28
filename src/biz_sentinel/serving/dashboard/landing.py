@@ -146,7 +146,7 @@ app.layout = html.Div(
                         html.A(
                             "Open Dashboard",
                             href=DASHBOARD_URL,
-                            target="_blank",
+                            target="_self",
                             rel="noopener noreferrer",
                             style={
                                 **BUTTON_BASE,
@@ -205,7 +205,7 @@ app.layout = html.Div(
                         html.A(
                             "Start Chat",
                             href=CHAT_URL,
-                            target="_blank",
+                            target="_self",
                             rel="noopener noreferrer",
                             style={
                                 **BUTTON_BASE,
