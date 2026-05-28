@@ -312,11 +312,12 @@ app.layout = html.Div(
                     n_submit=0,
                     style={
                         "flex": "1",
-                        "padding": "10px 16px",
+                        "padding": "0 16px",
                         "border": f"1px solid {COLORS['border']}",
                         "borderRadius": "6px",
-                        "fontSize": "14px",
+                        "fontSize": "15px",
                         "outline": "none",
+                        "lineHeight": "1.4",
                     },
                 ),
                 html.Button(
@@ -408,6 +409,19 @@ def handle_send(n_clicks: int, n_submit: int, messages: list[dict], user_input: 
     children = render_messages(messages)
 
     return messages, children, ""
+
+
+app.clientside_callback(
+    """
+    function() {
+        return '';
+    }
+    """,
+    Output("chat-input", "value", allow_duplicate=True),
+    Input("send-btn", "n_clicks"),
+    Input("chat-input", "n_submit"),
+    prevent_initial_call=True,
+)
 
 
 if __name__ == "__main__":
