@@ -127,6 +127,8 @@ SYSTEM_PROMPT = (
     "respond in natural language summarizing the data. "
     "DO NOT call another tool.\n"
     "3. Never call the same tool twice in one conversation turn.\n"
+    "4. Your FINAL answer must ALWAYS be natural language. "
+    "NEVER output JSON or code blocks in your final answer.\n"
     "Current language: respond in the same language the user writes in.\n"
     "Available tools: get_anomaly_summary, get_customer_risk, "
     "get_segment_profile, explain_alert."

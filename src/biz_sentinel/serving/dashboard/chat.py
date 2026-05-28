@@ -160,6 +160,19 @@ def render_messages(messages: list[dict]) -> list[html.Div]:
 # ---------------------------------------------------------------------------
 
 
+def _sanitize_final_response(content: str) -> str:
+    """Strip pure-JSON responses that leak from the model as a safety net."""
+    stripped = content.strip()
+    if stripped.startswith("{"):
+        try:
+            parsed = json.loads(stripped)
+            if isinstance(parsed, dict) and ("name" in parsed or "arguments" in parsed):
+                return "Entendido. ¿Hay algo más en lo que pueda ayudarte?"
+        except json.JSONDecodeError:
+            pass
+    return content
+
+
 def _process_ollama_response(response, messages: list[dict]) -> list[dict]:
     """Process an Ollama response, execute any tool calls, return updated messages.
     Mutates *messages* in place."""
@@ -190,7 +203,9 @@ def _process_ollama_response(response, messages: list[dict]) -> list[dict]:
                 }
             )
         final = ollama.chat(model=MODEL, messages=messages)
-        messages.append({"role": "assistant", "content": final.message.content})
+        messages.append(
+            {"role": "assistant", "content": _sanitize_final_response(final.message.content)}
+        )
 
     # --- Path 2: text-based JSON tool call (qwen2.5-coder fallback) ---
     elif msg.content and msg.content.strip().startswith("{"):
@@ -210,7 +225,8 @@ def _process_ollama_response(response, messages: list[dict]) -> list[dict]:
                     }
                 )
                 final = ollama.chat(model=MODEL, messages=messages)
-                messages.append({"role": "assistant", "content": final.message.content})
+                safe = _sanitize_final_response(final.message.content)
+                messages.append({"role": "assistant", "content": safe})
             else:
                 messages.append({"role": "assistant", "content": msg.content})
         except (json.JSONDecodeError, KeyError):
