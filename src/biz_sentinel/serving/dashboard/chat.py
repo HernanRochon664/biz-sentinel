@@ -312,7 +312,7 @@ app.layout = html.Div(
                     n_submit=0,
                     style={
                         "flex": "1",
-                        "padding": "14px 16px",
+                        "padding": "0 16px",
                         "border": f"1px solid {COLORS['border']}",
                         "borderRadius": "6px",
                         "fontSize": "15px",
