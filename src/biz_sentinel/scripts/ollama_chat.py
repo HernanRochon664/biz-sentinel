@@ -3,7 +3,7 @@
 Usage:
     uv run python -m biz_sentinel.scripts.ollama_chat
 
-Requires Ollama running locally with qwen2.5-coder:7b (or model in .env OLLAMA_MODEL).
+Requires Ollama running locally with gemma4:e4b (or model in .env OLLAMA_MODEL).
 """
 
 import json
@@ -115,7 +115,7 @@ def call_tool(name: str, args: dict):
 
 # ---------------------------------------------------------------------------
 # System prompt (explicit about JSON format for models that don't support
-# native tool-calling, e.g. qwen2.5-coder:7b)
+# native tool-calling, e.g. gemma4:e4b)
 # ---------------------------------------------------------------------------
 
 SYSTEM_PROMPT = (
@@ -127,6 +127,8 @@ SYSTEM_PROMPT = (
     "respond in natural language summarizing the data. "
     "DO NOT call another tool.\n"
     "3. Never call the same tool twice in one conversation turn.\n"
+    "4. Your FINAL answer must ALWAYS be natural language. "
+    "NEVER output JSON or code blocks in your final answer.\n"
     "Current language: respond in the same language the user writes in.\n"
     "Available tools: get_anomaly_summary, get_customer_risk, "
     "get_segment_profile, explain_alert."
@@ -138,7 +140,7 @@ SYSTEM_PROMPT = (
 
 
 def main():
-    model = os.getenv("OLLAMA_MODEL", "qwen2.5-coder:7b")
+    model = os.getenv("OLLAMA_MODEL", "gemma4:e4b")
     messages: list[dict] = [{"role": "system", "content": SYSTEM_PROMPT}]
 
     print(f"BizSentinel Chat — {model}")
