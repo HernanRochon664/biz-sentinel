@@ -91,7 +91,6 @@ app.index_string = """
 
 app.layout = html.Div(
     [
-        html.Style("body { margin: 0; }"),  # type: ignore[attr-defined]
         # Header
         html.Div(
             [
