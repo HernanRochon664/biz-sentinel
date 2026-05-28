@@ -1,6 +1,6 @@
 """BizSentinel AI Chat — Dash web UI for Ollama-based Q&A with tool calling.
 
-Runs standalone on port 8060. Requires Ollama running locally with qwen2.5-coder:7b.
+Runs standalone on port 8060. Requires Ollama running locally with gemma4:e4b.
 Reuses the exact tool-calling logic from biz_sentinel.scripts.ollama_chat.
 """
 
@@ -12,7 +12,29 @@ import dash
 import ollama
 from dash import Dash, Input, Output, State, callback, dcc, html
 
-from biz_sentinel.scripts.ollama_chat import SYSTEM_PROMPT, TOOLS, call_tool
+from biz_sentinel.scripts.ollama_chat import TOOLS, call_tool
+
+# ---------------------------------------------------------------------------
+# System prompt
+# ---------------------------------------------------------------------------
+
+SYSTEM_PROMPT = """You are BizSentinel, a business intelligence assistant.
+You have access to tools that query real customer data.
+
+STRICT RULES:
+- To call a tool, output ONLY a JSON object: {"name": "tool_name", "arguments": {...}}
+- After receiving a [TOOL RESULT], you MUST respond in plain conversational Spanish.
+- NEVER output JSON after receiving a [TOOL RESULT].
+- NEVER make up data. ONLY use data from tool results.
+- Keep responses concise and business-focused.
+- If you already have the data, answer directly without calling tools again.
+
+Available tools:
+- get_anomaly_summary(days): Returns anomaly statistics
+- get_customer_risk(customer_hash): Returns risk profile for a customer
+- get_segment_profile(segment_label): Returns segment statistics
+- explain_alert(alert_id): Returns alert explanation
+"""
 
 # ---------------------------------------------------------------------------
 # Color scheme (matches app.py / landing.py)
@@ -29,7 +51,7 @@ COLORS = {
 }
 
 FONT_FAMILY = "system-ui, -apple-system, sans-serif"
-MODEL = "qwen2.5-coder:7b"
+MODEL = "gemma4:e4b"
 
 INITIAL_MESSAGE = (
     "Hola, soy el asistente de BizSentinel. Puedo ayudarte a analizar "
@@ -197,12 +219,25 @@ def _process_ollama_response(response, messages: list[dict]) -> list[dict]:
             result = call_tool(fn_name, fn_args)
             messages.append(
                 {
-                    "role": "tool",
-                    "content": json.dumps(result),
-                    "name": fn_name,
+                    'role': 'user',
+                    'content': (
+                        f"[TOOL RESULT from {fn_name}]:\n"
+                        f"{json.dumps(result, indent=2, ensure_ascii=False)}\n\n"
+                        "Now respond in plain Spanish based on this data."
+                    ),
                 }
             )
+        messages.append(
+            {
+                'role': 'user',
+                'content': (
+                    'Responde en español natural y conversacional. '
+                    'No uses JSON.'
+                ),
+            }
+        )
         final = ollama.chat(model=MODEL, messages=messages)
+        messages.pop()
         messages.append(
             {"role": "assistant", "content": _sanitize_final_response(final.message.content)}
         )
@@ -217,14 +252,28 @@ def _process_ollama_response(response, messages: list[dict]) -> list[dict]:
                 fn_args = parsed["arguments"]
                 messages.append({"role": "assistant", "content": msg.content})
                 result = call_tool(fn_name, fn_args)
+                messages.append({"role": "assistant", "content": "Consultando datos..."})
                 messages.append(
                     {
-                        "role": "tool",
-                        "content": json.dumps(result),
-                        "name": fn_name,
+                        'role': 'user',
+                        'content': (
+                            f"[TOOL RESULT from {fn_name}]:\n"
+                            f"{json.dumps(result, indent=2, ensure_ascii=False)}\n\n"
+                            "Now respond in plain Spanish based on this data."
+                        ),
+                    }
+                )
+                messages.append(
+                    {
+                        'role': 'user',
+                        'content': (
+                            'Responde en español natural y conversacional. '
+                            'No uses JSON.'
+                        ),
                     }
                 )
                 final = ollama.chat(model=MODEL, messages=messages)
+                messages.pop()
                 safe = _sanitize_final_response(final.message.content)
                 messages.append({"role": "assistant", "content": safe})
             else:

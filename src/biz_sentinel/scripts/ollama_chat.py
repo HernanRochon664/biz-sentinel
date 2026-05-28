@@ -3,7 +3,7 @@
 Usage:
     uv run python -m biz_sentinel.scripts.ollama_chat
 
-Requires Ollama running locally with qwen2.5-coder:7b (or model in .env OLLAMA_MODEL).
+Requires Ollama running locally with gemma4:e4b (or model in .env OLLAMA_MODEL).
 """
 
 import json
@@ -115,7 +115,7 @@ def call_tool(name: str, args: dict):
 
 # ---------------------------------------------------------------------------
 # System prompt (explicit about JSON format for models that don't support
-# native tool-calling, e.g. qwen2.5-coder:7b)
+# native tool-calling, e.g. gemma4:e4b)
 # ---------------------------------------------------------------------------
 
 SYSTEM_PROMPT = (
@@ -140,7 +140,7 @@ SYSTEM_PROMPT = (
 
 
 def main():
-    model = os.getenv("OLLAMA_MODEL", "qwen2.5-coder:7b")
+    model = os.getenv("OLLAMA_MODEL", "gemma4:e4b")
     messages: list[dict] = [{"role": "system", "content": SYSTEM_PROMPT}]
 
     print(f"BizSentinel Chat — {model}")
