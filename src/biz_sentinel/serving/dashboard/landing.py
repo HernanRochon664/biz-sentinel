@@ -11,6 +11,7 @@ from dash import Dash, html
 DASHBOARD_URL = os.getenv("DASHBOARD_URL", "http://localhost:8050")
 CHAT_URL = os.getenv("CHAT_URL", "http://localhost:8060")
 CHAT_ENABLED = os.getenv("CHAT_ENABLED", "true").lower() == "true"
+IS_DEV = os.getenv("ENVIRONMENT", "production") == "development"
 
 # --- Color scheme (matches app.py) ---
 COLORS = {
@@ -179,7 +180,8 @@ app.layout = html.Div(
                         html.P(
                             "Ask questions in natural language. The assistant uses "
                             "local AI (Ollama + Qwen) to query the system and explain "
-                            "insights. Best for quick answers and recommendations.",
+                            "insights. Best for quick answers and recommendations."
+                            + (" See README for setup instructions." if IS_DEV else ""),
                             style={
                                 "color": "#6C757D",
                                 "fontSize": "14px",
@@ -202,40 +204,45 @@ app.layout = html.Div(
                                 "margin": "0 0 24px",
                             },
                         ),
-                        html.A(
-                            "Start Chat",
-                            href=CHAT_URL,
-                            target="_self",
-                            rel="noopener noreferrer",
-                            style={
-                                **BUTTON_BASE,
-                                "background": COLORS["success"],
-                                "color": "white",
-                                "border": "none",
-                            },
-                        ) if CHAT_ENABLED else html.Button(
-                            "Start Chat",
-                            disabled=True,
-                            style={
-                                "width": "100%",
-                                "padding": "14px",
-                                "background": "#95a5a6",
-                                "color": "white",
-                                "border": "none",
-                                "borderRadius": "6px",
-                                "fontSize": "16px",
-                                "cursor": "not-allowed",
-                                "marginTop": "16px",
-                            },
-                        ),
-                        html.P(
-                            "AI Chat runs locally only. See README for setup instructions.",
-                            style={
-                                "color": "#6C757D",
-                                "fontSize": "12px",
-                                "margin": "12px 0 0",
-                                "textAlign": "center",
-                            },
+                        html.Div(
+                            [
+                                html.A(
+                                    "Start Chat",
+                                    href=CHAT_URL,
+                                    target="_self",
+                                    rel="noopener noreferrer",
+                                    style={
+                                        **BUTTON_BASE,
+                                        "background": COLORS["success"],
+                                        "color": "white",
+                                        "border": "none",
+                                    },
+                                ) if CHAT_ENABLED else html.Button(
+                                    "Start Chat",
+                                    disabled=True,
+                                    style={
+                                        "width": "100%",
+                                        "padding": "14px",
+                                        "background": "#95a5a6",
+                                        "color": "white",
+                                        "border": "none",
+                                        "borderRadius": "6px",
+                                        "fontSize": "16px",
+                                        "cursor": "not-allowed",
+                                    },
+                                ),
+                                html.P(
+                                    "AI Chat runs locally only. See README for setup instructions.",
+                                    style={
+                                        "color": "#6C757D",
+                                        "fontSize": "12px",
+                                        "margin": "12px 0 0",
+                                        "textAlign": "center",
+                                    },
+                                ) if not IS_DEV else None,
+                            ],
+                            style={"marginTop": "auto"},
+
                         ),
                     ],
                     style=CARD_STYLE,
