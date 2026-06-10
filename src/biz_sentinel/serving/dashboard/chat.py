@@ -308,7 +308,7 @@ app.layout = html.Div(
             [
                 html.A(
                     "← Back",
-                    href="http://localhost:8055",
+                    href=os.getenv("LANDING_URL", "http://localhost:8055"),
                     style={
                         "color": "#6C757D",
                         "textDecoration": "none",
