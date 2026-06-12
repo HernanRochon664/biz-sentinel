@@ -17,45 +17,65 @@ From an MLOps perspective, BizSentinel implements Kedro pipelines with MLflow ex
 
 ## Architecture
 
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│  Data                                                                 │
-│  7 Olist CSVs ──▶ Kedro Pipelines ──▶ Parquet Layers ──▶ MLflow     │
-│  (data/01_raw/)   preprocessing        (02-07)         experiment    │
-│                     feature eng                         registry     │
-│                     training                                          │
-└────────────────────────────────┬─────────────────────────────────────┘
-                                 │ load_scores_to_db.py
-                                 ▼
-                    ┌───────────────────────┐
-                    │    SQLite DB           │
-                    │  (data/biz_sentinel.db)│
-                    │  anomaly_scores        │
-                    │  churn_scores          │
-                    │  segment_assignments   │
-                    │  alerts                │
-                    └──────┬────────────────┘
-                           │
-          ┌────────────────┼──────────────────┐
-          │                │                  │
-          ▼                ▼                  ▼
-   ┌──────────┐    ┌────────────┐    ┌──────────────┐
-   │ FastAPI  │    │ Dash       │    │ Dash         │
-   │ :8000    │    │ Dashboard  │    │ Landing      │
-   │ /health  │    │ :8050      │    │ :8055        │
-   │ /anomalies│   │ Overview   │    │               │
-   │ /customers│   │ Anomalies  │    │               │
-   │ /alerts   │    │ Segments   │    │ Dash Chat    │
-   └──────────┘    └────────────┘    │ :8060        │
-                                      └──────┬───────┘
-                                             │
-                                             ▼
-                                   ┌─────────────────┐
-                                   │ FastMCP (stdio)  │
-                                   │ 4 tools          │
-                                   │ ◄─── Ollama      │
-                                   │     qwen2.5-coder│
-                                   └─────────────────┘
+```mermaid
+flowchart TB
+
+    %% =========================
+    %% Data & ML Layer
+    %% =========================
+
+    subgraph DATA["Data & ML Layer"]
+        RAW["7 Olist CSVs<br/>(data/01_raw/)"]
+
+        KEDRO["Kedro Pipelines<br/><br/>• Preprocessing<br/>• Feature Engineering<br/>• Training"]
+
+        PARQUET["Parquet Layers<br/>(02-07)"]
+
+        MLFLOW["MLflow<br/><br/>Experiment Tracking<br/>Model Registry"]
+
+        RAW --> KEDRO
+        KEDRO --> PARQUET
+        PARQUET --> MLFLOW
+    end
+
+    LOAD["load_scores_to_db.py"]
+
+    %% =========================
+    %% Persistence Layer
+    %% =========================
+
+    DB[("SQLite Database<br/>data/biz_sentinel.db<br/><br/>anomaly_scores<br/>churn_scores<br/>segment_assignments<br/>alerts")]
+
+    DATA --> LOAD
+    LOAD --> DB
+
+    %% =========================
+    %% Application Layer
+    %% =========================
+
+    subgraph APPS["Application Layer"]
+
+        API["FastAPI<br/>:8000<br/><br/>/health<br/>/anomalies<br/>/customers<br/>/alerts"]
+
+        DASH["Dash Dashboard<br/>:8050<br/><br/>Overview<br/>Anomalies<br/>Segments"]
+
+        LANDING["Dash Landing<br/>:8055"]
+
+        CHAT["Dash Chat<br/>:8060"]
+
+        MCP["FastMCP (stdio)<br/><br/>4 tools"]
+
+        OLLAMA["Ollama<br/>qwen2.5-coder"]
+
+        CHAT --> MCP
+        MCP <--> OLLAMA
+    end
+
+    DB --> API
+    DB --> DASH
+    DB --> LANDING
+
+    LANDING --> CHAT
 ```
 
 ## ML Modules
