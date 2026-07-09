@@ -15,7 +15,9 @@ import pandas as pd
 # Return a sentinel object instead of None — Kedro cannot save None to MemoryDataset
 class _DPFailedSentinel:
     """Placeholder when DP training fails due to library incompatibility."""
+
     pass
+
 
 CHURN_FEATURES: list[str] = [
     "recency_days",
@@ -99,7 +101,7 @@ def prepare_churn_features(
     cols_to_drop = ["segment_label", "anomaly_score"]
     feature_matrix_with_labels = feature_matrix_with_labels.drop(
         columns=[c for c in cols_to_drop if c in feature_matrix_with_labels.columns],
-        errors="ignore"
+        errors="ignore",
     )
 
     merged = feature_matrix_with_labels.merge(

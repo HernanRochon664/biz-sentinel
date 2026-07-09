@@ -219,8 +219,8 @@ def _process_ollama_response(response, messages: list[dict]) -> list[dict]:
             result = call_tool(fn_name, fn_args)
             messages.append(
                 {
-                    'role': 'user',
-                    'content': (
+                    "role": "user",
+                    "content": (
                         f"[TOOL RESULT from {fn_name}]:\n"
                         f"{json.dumps(result, indent=2, ensure_ascii=False)}\n\n"
                         "Now respond in plain Spanish based on this data."
@@ -229,11 +229,8 @@ def _process_ollama_response(response, messages: list[dict]) -> list[dict]:
             )
         messages.append(
             {
-                'role': 'user',
-                'content': (
-                    'Responde en español natural y conversacional. '
-                    'No uses JSON.'
-                ),
+                "role": "user",
+                "content": ("Responde en español natural y conversacional. No uses JSON."),
             }
         )
         final = ollama.chat(model=MODEL, messages=messages)
@@ -255,8 +252,8 @@ def _process_ollama_response(response, messages: list[dict]) -> list[dict]:
                 messages.append({"role": "assistant", "content": "Consultando datos..."})
                 messages.append(
                     {
-                        'role': 'user',
-                        'content': (
+                        "role": "user",
+                        "content": (
                             f"[TOOL RESULT from {fn_name}]:\n"
                             f"{json.dumps(result, indent=2, ensure_ascii=False)}\n\n"
                             "Now respond in plain Spanish based on this data."
@@ -265,11 +262,8 @@ def _process_ollama_response(response, messages: list[dict]) -> list[dict]:
                 )
                 messages.append(
                     {
-                        'role': 'user',
-                        'content': (
-                            'Responde en español natural y conversacional. '
-                            'No uses JSON.'
-                        ),
+                        "role": "user",
+                        "content": ("Responde en español natural y conversacional. No uses JSON."),
                     }
                 )
                 final = ollama.chat(model=MODEL, messages=messages)
