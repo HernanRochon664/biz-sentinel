@@ -86,3 +86,16 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def get_session():
+    """Create an independent database session for non-FastAPI use.
+
+    Caller must close the session when done:
+        session = get_session()
+        try:
+            ...
+        finally:
+            session.close()
+    """
+    return _SessionLocal()
