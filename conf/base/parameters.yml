@@ -22,6 +22,7 @@ training:
   dp_delta: 1.0e-5
   lgbm_n_estimators: 200
   lgbm_learning_rate: 0.05
+  n_clusters: 3
 
 inference:
   anomaly_threshold: 0.7
