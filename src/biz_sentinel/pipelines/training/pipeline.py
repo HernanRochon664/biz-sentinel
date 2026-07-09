@@ -19,6 +19,7 @@ from biz_sentinel.pipelines.training.segmentation_nodes import (
     compute_segment_profiles,
     find_optimal_k,
     prepare_segmentation_features,
+    select_optimal_k,
     train_kmeans,
 )
 
@@ -96,13 +97,21 @@ def create_pipeline(**kwargs) -> Pipeline:
                 name="find_optimal_k_node",
                 tags=["training", "segmentation", "analysis"],
             ),
-            # NOTE: Replace n_clusters with optimal k from find_optimal_k before production.
-            # Currently uses n_clusters_min as reasonable default.
+            node(  # type: ignore[arg-type]
+                func=select_optimal_k,
+                inputs=[
+                    "k_analysis_results",
+                    "params:training.n_clusters",
+                ],
+                outputs="optimal_k",
+                name="select_optimal_k_node",
+                tags=["training", "segmentation", "analysis"],
+            ),
             node(  # type: ignore[arg-type]
                 func=train_kmeans,
                 inputs=[
                     "segmentation_feature_matrix",
-                    "params:feature_engineering.n_clusters_min",
+                    "optimal_k",
                     "params:training.random_state",
                 ],
                 outputs=["segmentation_model", "segmentation_metrics"],
