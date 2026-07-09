@@ -105,14 +105,22 @@ def check_score_distribution(
     retry_delay_seconds=3600,
 )
 def monitoring_flow(
-    reference_features_path: str = "data/05_model_input/feature_matrix.parquet",
+    reference_features_path: str = "data/05_model_input/feature_matrix_reference.parquet",
+    current_features_path: str = "data/05_model_input/feature_matrix.parquet",
     current_scores_path: str = "data/07_model_output/churn_scores.parquet",
 ) -> dict[str, object]:
     """Run weekly monitoring checks.
 
+    Compares a *reference* feature matrix (typically the previous week) against
+    the *current* one. If the reference file does not exist (first run, fresh
+    install, or the snapshot has not been promoted yet) the flow logs the
+    missing reference, skips the drift task, and still runs the score
+    distribution check so downstream alerting remains functional.
+
     Args:
-        reference_features_path: Path to reference feature matrix.
-        current_scores_path: Path to latest scores.
+        reference_features_path: Path to last week's feature matrix.
+        current_features_path: Path to this week's feature matrix.
+        current_scores_path: Path to latest churn_scores parquet.
 
     Returns:
         Dictionary with drift scores and distribution check results.
@@ -120,14 +128,33 @@ def monitoring_flow(
     logger = get_run_logger()
     logger.info("BizSentinel Monitoring Flow started")
 
-    drift_scores = check_data_drift(
-        reference_path=reference_features_path,
-        current_path=reference_features_path,
-    )
+    import os
+
+    drift_scores: dict[str, float] = {}
+    if os.path.exists(reference_features_path) and os.path.exists(current_features_path):
+        if os.path.samefile(reference_features_path, current_features_path):
+            logger.warning(
+                "Reference and current feature matrices resolve to the same path "
+                f"({reference_features_path}); skipping drift check. Promote last "
+                "week's snapshot to the reference path to enable drift detection."
+            )
+        else:
+            drift_scores = check_data_drift(
+                reference_path=reference_features_path,
+                current_path=current_features_path,
+            )
+    else:
+        missing = [
+            p for p in (reference_features_path, current_features_path) if not os.path.exists(p)
+        ]
+        logger.warning(
+            f"Skipping drift check; missing files: {missing}. Run the training "
+            "pipeline and promote the previous snapshot to the reference path."
+        )
 
     score_checks = check_score_distribution(current_scores_path)
 
-    all_passed = all(score_checks.values())
+    all_passed = all(score_checks.values()) if score_checks else False
     notify_completion(
         "monitoring_flow",
         success=all_passed,

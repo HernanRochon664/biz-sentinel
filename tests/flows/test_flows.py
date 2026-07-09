@@ -177,13 +177,48 @@ class TestMonitoringFlow:
     @pytest.mark.integration
     def test_monitoring_flow_completes(self, sample_parquet_files, mock_subprocess_success):
         reference = str(sample_parquet_files / "feature_matrix.parquet")
-        current = str(sample_parquet_files / "churn_scores.parquet")
+        current = str(sample_parquet_files / "feature_matrix.parquet")
+        scores = str(sample_parquet_files / "churn_scores.parquet")
 
         with prefect_test_harness():
             result = monitoring_flow(
                 reference_features_path=reference,
-                current_scores_path=current,
+                current_features_path=current,
+                current_scores_path=scores,
             )
 
         assert "drift_scores" in result
         assert "score_checks" in result
+
+    @pytest.mark.integration
+    def test_monitoring_flow_skips_drift_when_paths_match(
+        self, sample_parquet_files, mock_subprocess_success
+    ):
+        same = str(sample_parquet_files / "feature_matrix.parquet")
+        scores = str(sample_parquet_files / "churn_scores.parquet")
+
+        with prefect_test_harness():
+            result = monitoring_flow(
+                reference_features_path=same,
+                current_features_path=same,
+                current_scores_path=scores,
+            )
+
+        assert result["drift_scores"] == {}
+
+    @pytest.mark.integration
+    def test_monitoring_flow_skips_drift_when_files_missing(
+        self, sample_parquet_files, mock_subprocess_success, tmp_path
+    ):
+        scores = str(sample_parquet_files / "churn_scores.parquet")
+        missing_ref = str(tmp_path / "missing_reference.parquet")
+        missing_cur = str(tmp_path / "missing_current.parquet")
+
+        with prefect_test_harness():
+            result = monitoring_flow(
+                reference_features_path=missing_ref,
+                current_features_path=missing_cur,
+                current_scores_path=scores,
+            )
+
+        assert result["drift_scores"] == {}
