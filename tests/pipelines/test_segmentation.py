@@ -15,6 +15,7 @@ from biz_sentinel.pipelines.training.segmentation_nodes import (
     compute_segment_profiles,
     find_optimal_k,
     prepare_segmentation_features,
+    select_optimal_k,
     train_kmeans,
 )
 
@@ -131,6 +132,38 @@ class TestFindOptimalK:
 
         for score in result["silhouette_scores"]:
             assert -1 <= score <= 1, "Silhouette score should be between -1 and 1"
+
+
+class TestSelectOptimalK:
+    def test_select_optimal_k_returns_int(self, sample_feature_matrix):
+        X_scaled, _, _ = prepare_segmentation_features(sample_feature_matrix)
+        analysis = find_optimal_k(X_scaled, k_min=2, k_max=5, random_state=42)
+        result = select_optimal_k(analysis)
+        assert isinstance(result, int)
+
+    def test_select_optimal_k_picks_max_silhouette(self, sample_feature_matrix):
+        X_scaled, _, _ = prepare_segmentation_features(sample_feature_matrix)
+        analysis = find_optimal_k(X_scaled, k_min=2, k_max=5, random_state=42)
+        result = select_optimal_k(analysis)
+        best_idx = analysis["silhouette_scores"].idxmax()
+        expected = int(analysis.loc[best_idx, "k_values"])
+        assert result == expected
+
+    def test_select_optimal_k_default_on_empty(self):
+        empty = pd.DataFrame({"k_values": [], "silhouette_scores": []})
+        result = select_optimal_k(empty, default_n_clusters=5)
+        assert result == 5
+
+    def test_select_optimal_k_default_on_empty_no_default(self):
+        empty = pd.DataFrame({"k_values": [], "silhouette_scores": []})
+        result = select_optimal_k(empty)
+        assert result == 3
+
+    def test_select_optimal_k_in_range(self, sample_feature_matrix):
+        X_scaled, _, _ = prepare_segmentation_features(sample_feature_matrix)
+        analysis = find_optimal_k(X_scaled, k_min=2, k_max=5, random_state=42)
+        result = select_optimal_k(analysis)
+        assert 2 <= result <= 5
 
 
 class TestTrainKmeans:
