@@ -122,6 +122,11 @@ def prepare_churn_features(
 
     merged["anomaly_score"] = merged["anomaly_score"].fillna(0.5)
 
+    # Temporal split guarantee: sort by recency_days ascending so that
+    # train_churn_model and train_churn_model_with_dp can use iloc[:split]
+    # for past (high recency) and iloc[split:] for recent (low recency).
+    merged = merged.sort_values("recency_days").reset_index(drop=True)
+
     missing_features = [f for f in CHURN_FEATURES if f not in merged.columns]
     if missing_features:
         raise ValueError(f"Missing required features for churn prediction: {missing_features}")
@@ -172,9 +177,9 @@ def train_churn_model(
         roc_auc_score,
     )
 
-    # Temporal split preserves order. Assumes feature_matrix is
-    # sorted by recency (most recent customers last). This avoids data leakage
-    # from future to past.
+    # Temporal split preserves order. Guaranteed by prepare_churn_features:
+    # data is sorted by recency_days ascending (most recent customers last).
+    # This avoids data leakage from future to past.
     split_idx = int(len(X) * 0.8)
     X_train, X_test = X.iloc[:split_idx], X.iloc[split_idx:]
     y_train, y_test = y.iloc[:split_idx], y.iloc[split_idx:]
@@ -239,8 +244,11 @@ def train_churn_model_with_dp(
 
     This function serves as a comparison baseline, not the primary model.
 
+    The temporal split assumes X is sorted by recency_days ascending (most
+    recent customers last). Guaranteed by prepare_churn_features.
+
     Args:
-        X: Feature matrix with CHURN_FEATURES.
+        X: Feature matrix with CHURN_FEATURES (sorted by recency_days ascending).
         y: Binary churn labels (0 = active, 1 = churned).
         epsilon: Privacy parameter controlling noise magnitude.
         delta: Privacy parameter (failure probability).
