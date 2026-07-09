@@ -187,17 +187,19 @@ class TestComputeAnomalyShap:
         model, X, customer_hashes = trained_model_and_data
         result = compute_anomaly_shap(model, X, customer_hashes, max_samples=10)
 
-        expected_cols = [
-            "customer_hash",
-            "shap_feature_1",
-            "shap_value_1",
-            "shap_feature_2",
-            "shap_value_2",
-            "shap_feature_3",
-            "shap_value_3",
-        ]
+        expected_cols = ["customer_hash", "shap_values"]
         for col in expected_cols:
             assert col in result.columns, f"Result should contain '{col}'"
+
+    def test_shap_values_is_valid_json(self, trained_model_and_data):
+        import json
+        model, X, customer_hashes = trained_model_and_data
+        result = compute_anomaly_shap(model, X, customer_hashes, max_samples=10)
+
+        for _, row in result.iterrows():
+            shap_dict = json.loads(row["shap_values"])
+            assert isinstance(shap_dict, dict), "shap_values should parse to dict"
+            assert len(shap_dict) <= 3, "Should have at most 3 features"
 
     def test_shap_does_not_raise_on_valid_input(self, trained_model_and_data):
         model, X, customer_hashes = trained_model_and_data
@@ -225,7 +227,5 @@ class TestComputeAnomalyShap:
         result = compute_anomaly_shap(model, X, customer_hashes, max_samples=10)
 
         assert len(result) == 0, "Result should be empty when SHAP fails"
-        expected_cols = ["customer_hash", "shap_feature_1", "shap_value_1",
-                         "shap_feature_2", "shap_value_2", "shap_feature_3", "shap_value_3"]
-        for col in expected_cols:
-            assert col in result.columns, f"Result should contain '{col}' even when empty"
+        assert list(result.columns) == ["customer_hash", "shap_values"], \
+            "Empty result should have correct columns"

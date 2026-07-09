@@ -573,13 +573,19 @@ class TestComputeChurnShap:
         model, X, customer_hashes = trained_model_and_data
         result = compute_churn_shap(model, X, customer_hashes, max_samples=10)
 
-        expected_cols = ["customer_hash"]
-        for i in range(1, 6):
-            expected_cols.append(f"shap_feature_{i}")
-            expected_cols.append(f"shap_value_{i}")
-
+        expected_cols = ["customer_hash", "shap_values"]
         for col in expected_cols:
             assert col in result.columns, f"Result should contain '{col}'"
+
+    def test_churn_shap_values_is_valid_json(self, trained_model_and_data):
+        import json
+        model, X, customer_hashes = trained_model_and_data
+        result = compute_churn_shap(model, X, customer_hashes, max_samples=10)
+
+        for _, row in result.iterrows():
+            shap_dict = json.loads(row["shap_values"])
+            assert isinstance(shap_dict, dict), "shap_values should parse to dict"
+            assert len(shap_dict) <= 5, "Should have at most 5 features"
 
     def test_churn_shap_max_samples_respected(self, trained_model_and_data):
         model, X, customer_hashes = trained_model_and_data
@@ -597,11 +603,6 @@ class TestComputeChurnShap:
 
         result = compute_churn_shap(model, X, customer_hashes, max_samples=10)
 
-        expected_cols = ["customer_hash"]
-        for i in range(1, 6):
-            expected_cols.append(f"shap_feature_{i}")
-            expected_cols.append(f"shap_value_{i}")
-
         assert len(result) == 0
-        for col in expected_cols:
-            assert col in result.columns
+        assert list(result.columns) == ["customer_hash", "shap_values"], \
+            "Empty result should have correct columns"

@@ -6,6 +6,7 @@ Module A (anomaly detection) and Module B (customer segmentation) as
 additional features, with SHAP-based interpretability.
 """
 
+import json
 import warnings
 from typing import Any
 
@@ -371,6 +372,9 @@ def compute_churn_shap(
     SHAP computation is expensive. max_samples limits computation to a
     representative subset.
 
+    SHAP values are returned as a JSON string column for portability
+    across SQL, Parquet, and API serialization.
+
     Args:
         model: Trained LightGBM model.
         X: Feature matrix for SHAP computation.
@@ -379,18 +383,15 @@ def compute_churn_shap(
         max_samples: Maximum number of samples to compute SHAP values for.
 
     Returns:
-        DataFrame with columns: [customer_hash, shap_feature_1..5, shap_value_1..5]
-        Returns empty DataFrame with correct column structure if SHAP computation fails.
+        DataFrame with columns: [customer_hash, shap_values] where shap_values
+        is a JSON string encoding {feature_name: shap_value} for the top 5
+        features by absolute SHAP value.
+        Returns empty DataFrame with the same columns if SHAP computation fails.
     """
     import shap  # type: ignore[import-untyped]
 
     if feature_names is None:
         feature_names = CHURN_FEATURES
-
-    columns = ["customer_hash"]
-    for i in range(1, 6):
-        columns.append(f"shap_feature_{i}")
-        columns.append(f"shap_value_{i}")
 
     try:
         if len(X) > max_samples:
@@ -414,19 +415,19 @@ def compute_churn_shap(
                 :5
             ]
 
-            result_row: dict[str, Any] = {"customer_hash": customer_hashes_sample.iloc[i]}
-            for rank, (feat_idx, shap_val) in enumerate(feature_importance, start=1):
-                result_row[f"shap_feature_{rank}"] = feature_names[feat_idx]
-                result_row[f"shap_value_{rank}"] = float(shap_val)
-
-            for rank in range(len(feature_importance) + 1, 6):
-                result_row[f"shap_feature_{rank}"] = None
-                result_row[f"shap_value_{rank}"] = None
-
-            results.append(result_row)
+            shap_dict: dict[str, float] = {
+                feature_names[feat_idx]: float(shap_val)
+                for feat_idx, shap_val in feature_importance
+            }
+            results.append(
+                {
+                    "customer_hash": customer_hashes_sample.iloc[i],
+                    "shap_values": json.dumps(shap_dict),
+                }
+            )
 
         return pd.DataFrame(results)
 
     except Exception as e:
         warnings.warn(f"SHAP computation failed: {e}. Returning empty DataFrame.", stacklevel=2)
-        return pd.DataFrame({col: [] for col in columns})
+        return pd.DataFrame({"customer_hash": [], "shap_values": []})
