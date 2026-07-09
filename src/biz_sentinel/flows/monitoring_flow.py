@@ -1,7 +1,10 @@
 """Monitoring Prefect Flow — weekly model and data drift checks."""
 
+import os
+
 import pandas as pd
 from prefect import flow, get_run_logger, task  # type: ignore[import-untyped]
+from scipy.stats import ks_2samp  # type: ignore[import-untyped]
 
 from biz_sentinel.flows.training_flow import notify_completion
 
@@ -98,9 +101,106 @@ def check_score_distribution(
     return checks
 
 
+@task(name="check_model_drift")
+def check_model_drift(
+    current_scores_path: str,
+    baseline_path: str,
+    ks_threshold: float = 0.1,
+) -> dict[str, object]:
+    """Detect concept drift via KS test on churn probability distribution.
+
+    Compares the current churn probability distribution against a stored
+    baseline using the two-sample Kolmogorov-Smirnov test. A significant
+    KS statistic (p < 0.05, or statistic > ks_threshold) suggests the
+    model's predictions have shifted — possible concept drift.
+
+    If no baseline exists yet (first run), saves current scores as the
+    baseline and reports 'no_baseline'.
+
+    Args:
+        current_scores_path: Path to latest churn_scores parquet.
+        baseline_path: Path to baseline churn probability distribution parquet.
+        ks_threshold: KS statistic threshold for flagging drift (default 0.1).
+
+    Returns:
+        Dictionary with keys: ks_statistic, p_value, drift_detected, status.
+    """
+    logger = get_run_logger()
+
+    try:
+        current = pd.read_parquet(current_scores_path)
+    except FileNotFoundError:
+        logger.warning(f"Current scores not found: {current_scores_path}")
+        return {"status": "no_data", "ks_statistic": 0.0, "p_value": 1.0, "drift_detected": False}
+
+    current_probs = current["churn_probability"].dropna().values
+
+    if not os.path.exists(baseline_path):
+        pd.DataFrame({"churn_probability": current_probs}).to_parquet(baseline_path, index=False)
+        logger.info(f"No baseline found. Saved current distribution as baseline to {baseline_path}")
+        return {
+            "status": "baseline_created",
+            "ks_statistic": 0.0,
+            "p_value": 1.0,
+            "drift_detected": False,
+        }
+
+    baseline = pd.read_parquet(baseline_path)
+    baseline_probs = baseline["churn_probability"].dropna().values
+
+    ks_result = ks_2samp(baseline_probs, current_probs)  # type: ignore[import-untyped]
+    ks_stat = float(ks_result[0])  # type: ignore[index]
+    p_val = float(ks_result[1])  # type: ignore[index]
+    drift_detected = ks_stat > ks_threshold and p_val < 0.05
+
+    if drift_detected:
+        logger.warning(
+            f"Model drift detected: KS={ks_stat:.4f}, p={p_val:.4f} (threshold={ks_threshold})"
+        )
+    else:
+        logger.info(f"Model drift check passed: KS={ks_stat:.4f}, p={p_val:.4f}")
+
+    return {
+        "status": "completed",
+        "ks_statistic": float(ks_stat),
+        "p_value": float(p_val),
+        "drift_detected": drift_detected,
+    }
+
+
+@task(name="save_score_baseline")
+def save_score_baseline(
+    current_scores_path: str,
+    baseline_path: str,
+) -> bool:
+    """Update the baseline distribution from current scores.
+
+    Called after a successful monitoring run to roll the baseline forward,
+    preventing repeated drift alerts from the same shift.
+
+    Args:
+        current_scores_path: Path to latest churn_scores parquet.
+        baseline_path: Path to baseline parquet to overwrite.
+
+    Returns:
+        True if baseline was updated.
+    """
+    logger = get_run_logger()
+    try:
+        current = pd.read_parquet(current_scores_path)
+    except FileNotFoundError:
+        logger.warning(f"Cannot update baseline: scores not found at {current_scores_path}")
+        return False
+
+    probs = current["churn_probability"].dropna().values
+    pd.DataFrame({"churn_probability": probs}).to_parquet(baseline_path, index=False)
+    logger.info(f"Baseline updated at {baseline_path} ({len(probs)} samples)")
+    return True
+
+
 @flow(
     name="biz-sentinel-monitoring",
-    description="Weekly monitoring: data drift detection and score distribution checks",
+    description="Weekly monitoring: data drift, score distribution, and concept drift checks",
     retries=1,
     retry_delay_seconds=3600,
 )
@@ -108,6 +208,7 @@ def monitoring_flow(
     reference_features_path: str = "data/05_model_input/feature_matrix_reference.parquet",
     current_features_path: str = "data/05_model_input/feature_matrix.parquet",
     current_scores_path: str = "data/07_model_output/churn_scores.parquet",
+    baseline_scores_path: str = "data/08_reporting/churn_score_baseline.parquet",
 ) -> dict[str, object]:
     """Run weekly monitoring checks.
 
@@ -117,18 +218,20 @@ def monitoring_flow(
     missing reference, skips the drift task, and still runs the score
     distribution check so downstream alerting remains functional.
 
+    Also runs a concept drift check (KS test) comparing current churn
+    probability distribution against a stored baseline.
+
     Args:
         reference_features_path: Path to last week's feature matrix.
         current_features_path: Path to this week's feature matrix.
         current_scores_path: Path to latest churn_scores parquet.
+        baseline_scores_path: Path to baseline churn probability distribution.
 
     Returns:
-        Dictionary with drift scores and distribution check results.
+        Dictionary with drift scores, score checks, and model drift results.
     """
     logger = get_run_logger()
     logger.info("BizSentinel Monitoring Flow started")
-
-    import os
 
     drift_scores: dict[str, float] = {}
     if os.path.exists(reference_features_path) and os.path.exists(current_features_path):
@@ -153,12 +256,34 @@ def monitoring_flow(
         )
 
     score_checks = check_score_distribution(current_scores_path)
+    model_drift = check_model_drift(
+        current_scores_path=current_scores_path,
+        baseline_path=baseline_scores_path,
+    )
 
-    all_passed = all(score_checks.values()) if score_checks else False
+    if model_drift.get("status") == "completed" and not model_drift.get("drift_detected", False):
+        save_score_baseline(
+            current_scores_path=current_scores_path,
+            baseline_path=baseline_scores_path,
+        )
+
+    n_drifted = sum(1 for v in drift_scores.values() if v > 0.2)
+    all_passed = (all(score_checks.values()) if score_checks else False) and not model_drift.get(
+        "drift_detected", False
+    )
+
     notify_completion(
         "monitoring_flow",
         success=all_passed,
-        metrics_summary=f"Drifted features: {sum(1 for v in drift_scores.values() if v > 0.2)}",
+        metrics_summary=(
+            f"Drifted features: {n_drifted}, "
+            f"Model KS: {model_drift.get('ks_statistic', 'N/A'):.4f}, "
+            f"Drift: {model_drift.get('drift_detected', 'N/A')}"
+        ),
     )
 
-    return {"drift_scores": drift_scores, "score_checks": score_checks}
+    return {
+        "drift_scores": drift_scores,
+        "score_checks": score_checks,
+        "model_drift": model_drift,
+    }
