@@ -5,6 +5,7 @@ customer segments) via a REST API with JWT authentication.
 """
 
 import os
+import warnings
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, HTTPException, status
@@ -29,10 +30,22 @@ from biz_sentinel.serving.api.schemas import (
     HealthResponse,
 )
 
-SECRET_KEY = os.getenv("SECRET_KEY", "dev_secret_change_in_production")
 ALGORITHM = "HS256"
 VERSION = "0.1.0"
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+
+SECRET_KEY = os.getenv("SECRET_KEY")
+if ENVIRONMENT == "production" and not SECRET_KEY:
+    raise RuntimeError(
+        "SECRET_KEY environment variable must be set in production. "
+        "Export SECRET_KEY=<your-secret> before starting the server."
+    )
+if not SECRET_KEY:
+    SECRET_KEY = "dev_secret_change_in_production"
+    warnings.warn(
+        "SECRET_KEY not set. Using insecure default for development. Set SECRET_KEY in production.",
+        stacklevel=2,
+    )
 
 
 @asynccontextmanager
