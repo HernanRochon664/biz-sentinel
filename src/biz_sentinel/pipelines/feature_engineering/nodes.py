@@ -31,8 +31,9 @@ def compute_rfm(transactions_clean: pd.DataFrame, rfm_snapshot_date: str) -> pd.
     return pd.DataFrame(result)
 
 
-def compute_review_features(reviews_clean: pd.DataFrame,
-                            orders_clean: pd.DataFrame) -> pd.DataFrame:
+def compute_review_features(
+    reviews_clean: pd.DataFrame, orders_clean: pd.DataFrame
+) -> pd.DataFrame:
     reviews_with_customers = pd.merge(
         reviews_clean, orders_clean[["order_id", "customer_id"]], on="order_id", how="inner"
     )

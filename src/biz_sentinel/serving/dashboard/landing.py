@@ -217,7 +217,9 @@ app.layout = html.Div(
                                         "color": "white",
                                         "border": "none",
                                     },
-                                ) if CHAT_ENABLED else html.Button(
+                                )
+                                if CHAT_ENABLED
+                                else html.Button(
                                     "Start Chat",
                                     disabled=True,
                                     style={
@@ -239,10 +241,11 @@ app.layout = html.Div(
                                         "margin": "12px 0 0",
                                         "textAlign": "center",
                                     },
-                                ) if not IS_DEV else None,
+                                )
+                                if not IS_DEV
+                                else None,
                             ],
                             style={"marginTop": "auto"},
-
                         ),
                     ],
                     style=CARD_STYLE,

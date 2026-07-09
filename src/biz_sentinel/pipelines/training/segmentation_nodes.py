@@ -108,12 +108,14 @@ def find_optimal_k(
         silhouette_scores_list.append(silhouette_score(X_scaled, km.labels_))
         davies_bouldin_scores_list.append(davies_bouldin_score(X_scaled, km.labels_))
 
-    return pd.DataFrame({
-        "k_values": k_values,
-        "inertias": inertias,
-        "silhouette_scores": silhouette_scores_list,
-        "davies_bouldin_scores": davies_bouldin_scores_list,
-    })
+    return pd.DataFrame(
+        {
+            "k_values": k_values,
+            "inertias": inertias,
+            "silhouette_scores": silhouette_scores_list,
+            "davies_bouldin_scores": davies_bouldin_scores_list,
+        }
+    )
 
 
 def train_kmeans(

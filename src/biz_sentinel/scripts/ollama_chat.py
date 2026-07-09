@@ -211,14 +211,10 @@ def main():
                     )
                     final = ollama.chat(model=model, messages=messages)
                     print(f"\nBizSentinel: {final.message.content}")
-                    messages.append(
-                        {"role": "assistant", "content": final.message.content}
-                    )
+                    messages.append({"role": "assistant", "content": final.message.content})
                 else:
                     print(f"\nBizSentinel: {msg.content}")
-                    messages.append(
-                        {"role": "assistant", "content": msg.content}
-                    )
+                    messages.append({"role": "assistant", "content": msg.content})
             except (json.JSONDecodeError, KeyError):
                 print(f"\nBizSentinel: {msg.content}")
                 messages.append({"role": "assistant", "content": msg.content})

@@ -264,8 +264,8 @@ class TestComputeRfm:
             )
 
     def test_rfm_empty_snapshot_date_raises(self, sample_transactions):
-        with pytest.raises(ValueError, match="snapshot_date must be a non-empty date string"):
-            compute_rfm(sample_transactions, snapshot_date="")
+        with pytest.raises(ValueError, match="must be a non-empty date string"):
+            compute_rfm(sample_transactions, "")
 
     def test_rfm_all_customers_present(self, sample_transactions, snapshot_date_str):
         result = compute_rfm(sample_transactions, snapshot_date_str)

@@ -84,7 +84,9 @@ def clean_payments(olist_order_payments_raw: pd.DataFrame) -> pd.DataFrame:
     return cleaned
 
 
-def pseudonymize_customers(customers_clean: pd.DataFrame, parameters: dict | None = None) -> pd.DataFrame:
+def pseudonymize_customers(
+    customers_clean: pd.DataFrame, parameters: dict | None = None
+) -> pd.DataFrame:
     hmac_salt = os.getenv("HMAC_SALT")
     if not hmac_salt:
         raise ValueError("HMAC_SALT environment variable must be set for pseudonymization")

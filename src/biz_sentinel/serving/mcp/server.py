@@ -11,7 +11,7 @@ Raw customer data is never exposed.
 
 Usage:
     uv run python -m biz_sentinel.serving.mcp.server
-    
+
     Or with MCP inspector:
     npx @modelcontextprotocol/inspector python -m biz_sentinel.serving.mcp.server
 """
@@ -49,14 +49,21 @@ not real names or emails. Never ask for or expose real customer identifiers.
 """,
 )
 
-# --- Database session ---
+# --- Database session (lazy init — tables created on first tool call) ---
 _engine = get_engine()
-init_db(_engine)
-_Session = get_session_factory(_engine)
+_db_initialized: bool = False
+
+
+def _ensure_db() -> None:
+    global _db_initialized
+    if not _db_initialized:
+        init_db(_engine)
+        _db_initialized = True
 
 
 def _get_session():
-    return _Session()
+    _ensure_db()
+    return get_session_factory(_engine)()
 
 
 # --- Segment descriptions (human-readable, LLM-friendly) ---
@@ -89,6 +96,7 @@ SEGMENT_DESCRIPTIONS: dict[str, str] = {
 
 
 # --- Tools ---
+
 
 @mcp.tool()
 def get_anomaly_summary(days: int = 7) -> dict:
@@ -163,15 +171,19 @@ def get_customer_risk(customer_hash: str) -> dict:
     """
     db = _get_session()
     try:
-        anomaly = db.query(AnomalyScoreRecord).filter(
-            AnomalyScoreRecord.customer_hash == customer_hash
-        ).first()
-        churn = db.query(ChurnScoreRecord).filter(
-            ChurnScoreRecord.customer_hash == customer_hash
-        ).first()
-        segment = db.query(SegmentRecord).filter(
-            SegmentRecord.customer_hash == customer_hash
-        ).first()
+        anomaly = (
+            db.query(AnomalyScoreRecord)
+            .filter(AnomalyScoreRecord.customer_hash == customer_hash)
+            .first()
+        )
+        churn = (
+            db.query(ChurnScoreRecord)
+            .filter(ChurnScoreRecord.customer_hash == customer_hash)
+            .first()
+        )
+        segment = (
+            db.query(SegmentRecord).filter(SegmentRecord.customer_hash == customer_hash).first()
+        )
 
         if not anomaly and not churn:
             return {
@@ -281,7 +293,8 @@ def explain_alert(alert_id: int) -> dict:
             "is_resolved": alert.is_resolved,
             "explanation": explanation,
             "recommended_action": (
-                "Mark as resolved once reviewed." if not alert.is_resolved
+                "Mark as resolved once reviewed."
+                if not alert.is_resolved
                 else "This alert has already been resolved."
             ),
         }
@@ -305,21 +318,18 @@ def get_segment_profile(segment_label: str) -> dict:
         return {
             "status": "invalid_segment",
             "message": f"Invalid segment '{segment_label}'. "
-                      f"Valid options: {', '.join(valid_labels)}",
+            f"Valid options: {', '.join(valid_labels)}",
         }
 
     db = _get_session()
     try:
-        records = db.query(SegmentRecord).filter(
-            SegmentRecord.segment_label == segment_label
-        ).all()
+        records = db.query(SegmentRecord).filter(SegmentRecord.segment_label == segment_label).all()
 
         customer_count = len(records)
 
         # Load segment profiles from parquet if available
         profiles_path = os.getenv(
-            "SEGMENT_PROFILES_PATH",
-            "data/07_model_output/segment_profiles.parquet"
+            "SEGMENT_PROFILES_PATH", "data/07_model_output/segment_profiles.parquet"
         )
         profile_stats: dict = {}
         try:
@@ -329,8 +339,7 @@ def get_segment_profile(segment_label: str) -> dict:
                 profile_stats = row.iloc[0].to_dict()
                 # Round float values for readability
                 profile_stats = {
-                    k: round(v, 2) if isinstance(v, float) else v
-                    for k, v in profile_stats.items()
+                    k: round(v, 2) if isinstance(v, float) else v for k, v in profile_stats.items()
                 }
         except FileNotFoundError:
             profile_stats = {"note": "Detailed profile not available. Run training pipeline."}
@@ -361,5 +370,6 @@ def _get_marketing_suggestion(segment_label: str) -> str:
 
 if __name__ == "__main__":
     import sys
+
     transport = sys.argv[1] if len(sys.argv) > 1 else "stdio"
     mcp.run(transport=transport)
