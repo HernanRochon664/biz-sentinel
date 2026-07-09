@@ -1,6 +1,6 @@
 """BizSentinel Dash Dashboard.
 
-Reads scored data from parquet files and displays three views:
+Reads scored data from the API database and displays three views:
 - Overview: KPI cards (anomaly rate, high-risk customers, top segment)
 - Anomalies: table of flagged customers with scores
 - Segments: bar chart of segment distribution with profile table
@@ -12,25 +12,23 @@ import pandas as pd
 import plotly.express as px  # type: ignore[import-untyped]
 from dash import Dash, Input, Output, callback, dash_table, dcc, html
 
-# --- Data paths (from env with defaults) ---
-ANOMALY_SCORES_PATH = os.getenv(
-    "ANOMALY_SCORES_PATH", "data/07_model_output/anomaly_scores.parquet"
+from biz_sentinel.serving.api.database import (
+    AnomalyScoreRecord,
+    ChurnScoreRecord,
+    SegmentRecord,
+    get_session,
 )
-CHURN_SCORES_PATH = os.getenv("CHURN_SCORES_PATH", "data/07_model_output/churn_scores.parquet")
+
+# --- Segment profiles path (only parquet — no ORM model for this aggregation) ---
 SEGMENT_PROFILES_PATH = os.getenv(
     "SEGMENT_PROFILES_PATH", "data/07_model_output/segment_profiles.parquet"
 )
-SEGMENT_ASSIGNMENTS_PATH = os.getenv(
-    "SEGMENT_ASSIGNMENTS_PATH", "data/07_model_output/segment_assignments.parquet"
-)
-
-# --- Data loading functions ---
 
 
-def load_parquet_safe(path: str) -> pd.DataFrame:
-    """Load parquet file, return empty DataFrame if file not found."""
+def _load_segment_profiles() -> pd.DataFrame:
+    """Load segment profiles from parquet, return empty if missing."""
     try:
-        return pd.read_parquet(path)
+        return pd.read_parquet(SEGMENT_PROFILES_PATH)
     except FileNotFoundError:
         return pd.DataFrame()
 
@@ -165,10 +163,60 @@ app.layout = html.Div(
 def render_tab(tab: str, _n_clicks: int) -> html.Div | html.P:
     """Render content for selected tab. Re-loads data on refresh."""
 
-    anomaly_df = load_parquet_safe(ANOMALY_SCORES_PATH)
-    churn_df = load_parquet_safe(CHURN_SCORES_PATH)
-    segment_profiles_df = load_parquet_safe(SEGMENT_PROFILES_PATH)
-    segment_df = load_parquet_safe(SEGMENT_ASSIGNMENTS_PATH)
+    session = get_session()
+    try:
+        anomaly_records = session.query(AnomalyScoreRecord).all()
+        churn_records = session.query(ChurnScoreRecord).all()
+        segment_records = session.query(SegmentRecord).all()
+    finally:
+        session.close()
+
+    anomaly_df = (
+        pd.DataFrame(
+            [
+                {
+                    "customer_hash": r.customer_hash,
+                    "anomaly_score": r.anomaly_score,
+                    "anomaly_flag": r.anomaly_flag,
+                }
+                for r in anomaly_records
+            ]
+        )
+        if anomaly_records
+        else pd.DataFrame()
+    )
+
+    churn_df = (
+        pd.DataFrame(
+            [
+                {
+                    "customer_hash": r.customer_hash,
+                    "churn_probability": r.churn_probability,
+                    "predicted_churn": r.predicted_churn,
+                }
+                for r in churn_records
+            ]
+        )
+        if churn_records
+        else pd.DataFrame()
+    )
+
+    segment_df = (
+        pd.DataFrame(
+            [
+                {
+                    "customer_hash": r.customer_hash,
+                    "cluster_id": r.cluster_id,
+                    "segment_label": r.segment_label,
+                }
+                for r in segment_records
+            ]
+        )
+        if segment_records
+        else pd.DataFrame()
+    )
+
+    segment_profiles_df = _load_segment_profiles()
 
     if tab == "overview":
         # KPI calculations
