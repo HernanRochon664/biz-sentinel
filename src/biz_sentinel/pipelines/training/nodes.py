@@ -4,6 +4,7 @@ This module contains functions for training anomaly detection models using
 Isolation Forest with MLflow experiment tracking.
 """
 
+import json
 import warnings
 
 import pandas as pd
@@ -182,6 +183,9 @@ def compute_anomaly_shap(
     representative subset. For full dataset explanation, increase max_samples
     but expect significantly longer runtime.
 
+    SHAP values are returned as a JSON string column for portability
+    across SQL, Parquet, and API serialization.
+
     Args:
         model: Trained IsolationForest model.
         X: Feature matrix for SHAP computation.
@@ -189,9 +193,10 @@ def compute_anomaly_shap(
         max_samples: Maximum number of samples to compute SHAP values for.
 
     Returns:
-        DataFrame with columns: [customer_hash, shap_feature_1, shap_value_1,
-        shap_feature_2, shap_value_2, shap_feature_3, shap_value_3]
-        Returns empty DataFrame with correct column structure if SHAP computation fails.
+        DataFrame with columns: [customer_hash, shap_values] where shap_values
+        is a JSON string encoding {feature_name: shap_value} for the top 3
+        features by absolute SHAP value.
+        Returns empty DataFrame with the same columns if SHAP fails.
     """
     import shap  # type: ignore[import-untyped]
 
@@ -217,25 +222,19 @@ def compute_anomaly_shap(
                 :3
             ]
 
-            result_row = {"customer_hash": customer_hashes_sample.iloc[i]}
-            for rank, (feat_idx, shap_val) in enumerate(feature_importance, start=1):
-                result_row[f"shap_feature_{rank}"] = ANOMALY_FEATURES[feat_idx]
-                result_row[f"shap_value_{rank}"] = float(shap_val)
-
-            results.append(result_row)
+            shap_dict: dict[str, float] = {
+                ANOMALY_FEATURES[feat_idx]: float(shap_val)
+                for feat_idx, shap_val in feature_importance
+            }
+            results.append(
+                {
+                    "customer_hash": customer_hashes_sample.iloc[i],
+                    "shap_values": json.dumps(shap_dict),
+                }
+            )
 
         return pd.DataFrame(results)
 
     except Exception as e:
         warnings.warn(f"SHAP computation failed: {e}. Returning empty DataFrame.", stacklevel=2)
-        return pd.DataFrame(
-            {
-                "customer_hash": [],
-                "shap_feature_1": [],
-                "shap_value_1": [],
-                "shap_feature_2": [],
-                "shap_value_2": [],
-                "shap_feature_3": [],
-                "shap_value_3": [],
-            }
-        )
+        return pd.DataFrame({"customer_hash": [], "shap_values": []})
