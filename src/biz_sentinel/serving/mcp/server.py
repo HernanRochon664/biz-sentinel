@@ -49,14 +49,21 @@ not real names or emails. Never ask for or expose real customer identifiers.
 """,
 )
 
-# --- Database session ---
+# --- Database session (lazy init — tables created on first tool call) ---
 _engine = get_engine()
-init_db(_engine)
-_Session = get_session_factory(_engine)
+_db_initialized: bool = False
+
+
+def _ensure_db() -> None:
+    global _db_initialized
+    if not _db_initialized:
+        init_db(_engine)
+        _db_initialized = True
 
 
 def _get_session():
-    return _Session()
+    _ensure_db()
+    return get_session_factory(_engine)()
 
 
 # --- Segment descriptions (human-readable, LLM-friendly) ---
