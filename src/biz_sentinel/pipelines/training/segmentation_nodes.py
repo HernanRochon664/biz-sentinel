@@ -118,6 +118,32 @@ def find_optimal_k(
     )
 
 
+def select_optimal_k(
+    k_analysis_results: pd.DataFrame,
+    default_n_clusters: int = 3,
+) -> int:
+    """Select optimal k based on highest silhouette score.
+
+    Silhouette score measures cluster cohesion and separation
+    (higher is better). This picks the k with maximum silhouette
+    from the precomputed k_analysis_results DataFrame.
+
+    Args:
+        k_analysis_results: DataFrame from find_optimal_k with columns
+            k_values, silhouette_scores, inertias, davies_bouldin_scores.
+        default_n_clusters: Fallback k if analysis is empty or
+            silhouette selection fails.
+
+    Returns:
+        Selected k value (int) — either optimal from analysis or default.
+    """
+    if k_analysis_results.empty:
+        return default_n_clusters
+
+    best_idx = k_analysis_results["silhouette_scores"].idxmax()
+    return int(k_analysis_results.loc[best_idx, "k_values"])
+
+
 def train_kmeans(
     X_scaled: pd.DataFrame,
     n_clusters: int,
