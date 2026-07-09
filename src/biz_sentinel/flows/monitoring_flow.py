@@ -145,9 +145,7 @@ def monitoring_flow(
             )
     else:
         missing = [
-            p
-            for p in (reference_features_path, current_features_path)
-            if not os.path.exists(p)
+            p for p in (reference_features_path, current_features_path) if not os.path.exists(p)
         ]
         logger.warning(
             f"Skipping drift check; missing files: {missing}. Run the training "
