@@ -21,8 +21,6 @@
 #                  Dockerfile.dashboard can be used for a lightweight
 #                  cloud deployment of just the serving layer.
 
-version: "3.9"
-
 services:
 
   mlflow:
