@@ -121,8 +121,7 @@ BizSentinel implements four distinct Kedro pipelines that process data from raw 
 5. **segment_labels**: Module B outputs (customer cluster assignments)
 6. **risk_scores**: Module C outputs (churn/default probability scores)
 7. **alerts**: Triggered alerts with threshold, score, and timestamp
-8. **exchange_rates**: Currency conversion rates (if needed for normalization)
-9. **model_metadata**: Champion model info (mirrors MLflow for quick access)
+8. **model_metadata**: Champion model info (mirrors MLflow for quick access)
 
 ## 6. CI/CD Pipeline
 
@@ -176,7 +175,6 @@ biz-sentinel/
 │   └── monitoring/          # Monitoring and alerting code
 ├── tests/                   # Unit and integration tests
 ├── docker/                  # Docker configurations
-├── deployment/              # Deployment scripts and infrastructure
 ├── README.md
 ├── PROJECT.md
 ├── STACK.md
