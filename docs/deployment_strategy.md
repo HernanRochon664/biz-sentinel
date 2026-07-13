@@ -13,7 +13,7 @@
 
 - **Triggered**: daily schedule via Prefect
 - **Process**: load latest data → run Kedro inference pipeline → write scores to DB → trigger alerts if thresholds exceeded
-- **Output**: scored records in price_snapshots equivalent table
+- **Output**: scored records in anomaly_scores, segment_labels, and risk_scores tables
 - **Infrastructure**: runs in Docker container on DigitalOcean droplet
 
 ## 3. Mode 2: REST API (FastAPI)
