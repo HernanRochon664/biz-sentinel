@@ -1,8 +1,6 @@
 # Development overrides — use with:
 # docker compose -f docker-compose.yml -f docker-compose.dev.yml up
 
-version: "3.9"
-
 services:
   app:
     volumes:
